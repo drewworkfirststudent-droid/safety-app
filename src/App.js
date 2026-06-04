@@ -1,21 +1,11 @@
 import { useState } from "react";
 
-/* FULL BUS LISTS */
-const NW_BUSES = [
-301,428,371,434,413,226,227,440,382,430,369,450,448,415,423,421,446,
-392,385,807,366,372,221,451,438,401,313,402,425,433,422,300,365,445,
-416,395,805,410,443,417,364,447,386,420,432,411,308,418,419,307,437,
-384,373,435,393,424,404,388,394,398,431,306,370,222,397,458,515,601,
-1,4,18,26,454,218,603,517,30,607,31,20,664,7,210,5,28,665,14,25,516,
-29,24,644
-];
-
-const SE_BUSES = [
-444,390,376,223,449,412,426,456,407,314,374,457,436,226,439,389,
-380,381,406,377,391,405,619,27,215,22,217,643,3,2
-];
+/* BUS LISTS */
+const NW_BUSES = [301,302,303,304,305];
+const SE_BUSES = [401,402,403,404];
 
 export default function App() {
+
   const [tab, setTab] = useState("dashboard");
   const [area, setArea] = useState("Northwest");
 
@@ -26,16 +16,18 @@ export default function App() {
   const [besUser, setBesUser] = useState("");
   const [besChecks, setBesChecks] = useState([]);
 
+  const nextBes = () => setBesIndex(i => (i + 1) % buses.length);
+
   const logBES = () => {
     if (!besUser) return alert("Enter name");
 
     setBesChecks([...besChecks, { bus: buses[besIndex], user: besUser }]);
-    setBesIndex((i) => (i + 1) % buses.length);
+
+    nextBes();
   };
 
   /* ================= FLEET ================= */
   const [fleetIndex, setFleetIndex] = useState(0);
-  const [fleetChecks, setFleetChecks] = useState([]);
 
   const [fleetForm, setFleetForm] = useState({
     registration: false,
@@ -47,10 +39,7 @@ export default function App() {
   });
 
   const saveFleet = () => {
-    setFleetChecks([
-      ...fleetChecks,
-      { bus: buses[fleetIndex], ...fleetForm }
-    ]);
+    setFleetChecks([...fleetChecks, { bus: buses[fleetIndex], ...fleetForm }]);
 
     setFleetForm({
       registration: false,
@@ -61,20 +50,33 @@ export default function App() {
       childCheckmate: false
     });
 
-    setFleetIndex((i) => (i + 1) % buses.length);
+    setFleetIndex(i => (i + 1) % buses.length);
   };
 
+  const nextFleet = () => setFleetIndex(i => (i + 1) % buses.length);
+
+  const [fleetChecks, setFleetChecks] = useState([]);
+
   /* ================= CCM ================= */
-  const [ccmBus, setCcmBus] = useState("");
+
   const [ccmChecks, setCcmChecks] = useState([]);
+  const [ccmBus, setCcmBus] = useState("");
 
-  const logCCM = (result) => {
+  // NEW: Sequential CCM Mode
+  const [ccmIndex, setCcmIndex] = useState(0);
+
+  const logCCMSequential = (result) => {
+    setCcmChecks([...ccmChecks, { bus: buses[ccmIndex], result }]);
+    setCcmIndex(i => (i + 1) % buses.length);
+  };
+
+  const logCCMManual = (result) => {
     if (!ccmBus) return alert("Select bus");
-
     setCcmChecks([...ccmChecks, { bus: ccmBus, result }]);
   };
 
   /* ================= FACILITY ================= */
+
   const [facilityType, setFacilityType] = useState("Extinguisher");
   const [facilityLocation, setFacilityLocation] = useState("");
   const [facilityPass, setFacilityPass] = useState(true);
@@ -98,62 +100,33 @@ export default function App() {
     setFacilityNotes("");
   };
 
-  /* ================= CALCULATIONS ================= */
-  const besCompleted = besChecks.map(b => b.bus);
-  const fleetCompleted = fleetChecks.map(f => f.bus);
+  /* ================= DASHBOARD ================= */
 
-  const besMissing = buses.filter(b => !besCompleted.includes(b));
-  const fleetMissing = buses.filter(b => !fleetCompleted.includes(b));
+  const besComplete = besChecks.length;
+  const fleetComplete = fleetChecks.length;
 
-  const besPercent = Math.round((besCompleted.length / buses.length) * 100) || 0;
-  const fleetPercent = Math.round((fleetCompleted.length / buses.length) * 100) || 0;
-
-  const ccmFails = ccmChecks.filter(c => c.result === "FAIL").length;
-  const facilityFails = facilityChecks.filter(f => !f.pass).length;
-
-  /* ================= EXPORT ================= */
-  const exportCSV = () => {
-    let rows = [];
-
-    besChecks.forEach(b => rows.push(`BES,${b.bus},${b.user}`));
-    besMissing.forEach(b => rows.push(`BES_MISSED,${b}`));
-
-    fleetChecks.forEach(f => rows.push(`FLEET,${f.bus},COMPLETE`));
-    fleetMissing.forEach(b => rows.push(`FLEET_MISSED,${b}`));
-
-    ccmChecks.forEach(c => rows.push(`CCM,${c.bus},${c.result}`));
-
-    facilityChecks.forEach(f =>
-      rows.push(`FACILITY,${f.type},${f.location},${f.pass ? "PASS" : "FAIL"},${f.notes}`)
-    );
-
-    const csv = "Type,Unit,Details\n" + rows.join("\n");
-
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = window.URL.createObjectURL(blob);
-
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "safety_report.csv";
-    a.click();
-  };
+  const besPercent = Math.round((besComplete / buses.length) * 100) || 0;
+  const fleetPercent = Math.round((fleetComplete / buses.length) * 100) || 0;
 
   return (
     <div style={{ padding: 20 }}>
+
       <h1>Safety Compliance System</h1>
 
-      <select value={area} onChange={(e) => setArea(e.target.value)}>
+      <select value={area} onChange={(e)=>setArea(e.target.value)}>
         <option>Northwest</option>
         <option>Southeast</option>
       </select>
 
       <div>
-        <button onClick={() => setTab("dashboard")}>Dashboard</button>
-        <button onClick={() => setTab("bes")}>BES</button>
-        <button onClick={() => setTab("fleet")}>Fleet</button>
-        <button onClick={() => setTab("ccm")}>CCM</button>
-        <button onClick={() => setTab("facility")}>Facility</button>
+        <button onClick={()=>setTab("dashboard")}>Dashboard</button>
+        <button onClick={()=>setTab("bes")}>BES</button>
+        <button onClick={()=>setTab("fleet")}>Fleet</button>
+        <button onClick={()=>setTab("ccm")}>CCM</button>
+        <button onClick={()=>setTab("facility")}>Facility</button>
       </div>
+
+      {/* DASHBOARD */}
 
       {tab === "dashboard" && (
         <div>
@@ -161,33 +134,37 @@ export default function App() {
 
           <div>BES Compliance: {besPercent}%</div>
           <div>Fleet Compliance: {fleetPercent}%</div>
-          <div>CCM Failures: {ccmFails}</div>
-          <div>Facility Failures: {facilityFails}</div>
-
-          <div>Missing BES: {besMissing.join(", ") || "None"}</div>
-          <div>Missing Fleet: {fleetMissing.join(", ") || "None"}</div>
-
-          <button onClick={exportCSV}>Export Report</button>
         </div>
       )}
+
+      {/* BES */}
 
       {tab === "bes" && (
         <div>
           <h2>BES</h2>
+
           <div>Bus: {buses[besIndex]}</div>
 
-          <input value={besUser} onChange={(e) => setBesUser(e.target.value)} placeholder="Name" />
+          <input
+            value={besUser}
+            onChange={(e)=>setBesUser(e.target.value)}
+            placeholder="Name"
+          />
 
           <button onClick={logBES}>Log</button>
+          <button onClick={nextBes}>Next Bus</button>
         </div>
       )}
+
+      {/* FLEET */}
 
       {tab === "fleet" && (
         <div>
           <h2>Fleet</h2>
+
           <div>Bus: {buses[fleetIndex]}</div>
 
-          {Object.keys(fleetForm).map((key) => (
+          {Object.keys(fleetForm).map(key => (
             <label key={key}>
               <input
                 type="checkbox"
@@ -204,50 +181,72 @@ export default function App() {
           ))}
 
           <button onClick={saveFleet}>Save</button>
+          <button onClick={nextFleet}>Next Bus</button>
         </div>
       )}
+
+      {/* CCM */}
 
       {tab === "ccm" && (
         <div>
           <h2>CCM</h2>
 
-          <select onChange={(e) => setCcmBus(e.target.value)}>
+          <h3>Sequential Mode</h3>
+          <div>Bus: {buses[ccmIndex]}</div>
+
+          <button onClick={()=>logCCMSequential("PASS")}>Pass</button>
+          <button onClick={()=>logCCMSequential("FAIL")}>Fail</button>
+
+          <h3>Manual Mode</h3>
+
+          <select onChange={(e)=>setCcmBus(e.target.value)}>
             <option value="">Select Bus</option>
             {buses.map(b => <option key={b}>{b}</option>)}
           </select>
 
-          <button onClick={() => logCCM("PASS")}>Pass</button>
-          <button onClick={() => logCCM("FAIL")}>Fail</button>
+          <button onClick={()=>logCCMManual("PASS")}>Pass</button>
+          <button onClick={()=>logCCMManual("FAIL")}>Fail</button>
         </div>
       )}
+
+      {/* FACILITY */}
 
       {tab === "facility" && (
         <div>
           <h2>Facility</h2>
 
-          <select onChange={(e) => setFacilityType(e.target.value)}>
+          <select onChange={(e)=>setFacilityType(e.target.value)}>
             <option>Extinguisher</option>
             <option>Eyewash</option>
             <option>CO Alarm</option>
           </select>
 
-          <input value={facilityLocation} onChange={(e) => setFacilityLocation(e.target.value)} placeholder="Location" />
+          <input
+            value={facilityLocation}
+            onChange={(e)=>setFacilityLocation(e.target.value)}
+            placeholder="Location"
+          />
 
           <label>
-            <input type="radio" checked={facilityPass === true} onChange={() => setFacilityPass(true)} />
+            <input type="radio" checked={facilityPass} onChange={()=>setFacilityPass(true)} />
             Pass
           </label>
 
           <label>
-            <input type="radio" checked={facilityPass === false} onChange={() => setFacilityPass(false)} />
+            <input type="radio" checked={!facilityPass} onChange={()=>setFacilityPass(false)} />
             Fail
           </label>
 
-          <input value={facilityNotes} onChange={(e) => setFacilityNotes(e.target.value)} placeholder="Notes" />
+          <input
+            value={facilityNotes}
+            onChange={(e)=>setFacilityNotes(e.target.value)}
+            placeholder="Notes"
+          />
 
           <button onClick={saveFacility}>Save</button>
         </div>
       )}
+
     </div>
   );
 }
