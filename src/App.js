@@ -1,158 +1,109 @@
-import { useState } from "react";
+Skip to content
 
-/* BUS LISTS */
-const NW_BUSES = [301, 302, 303, 304, 305];
-const SE_BUSES = [401, 402, 403, 404];
+Find…
+F
+Other
+Overview
+Deployments
+Logs
+Analytics
+Speed Insights
+Observability
+Firewall
+CDN
+Environment Variables
+Domains
+Integrations
+Storage
+Flags
+Agent
+AI Gateway
+Sandboxes
+Workflows
+Usage
+Support
+Settings
 
-export default function App() {
-  const [tab, setTab] = useState("dashboard");
-  const [area, setArea] = useState("Northwest");
+Avatar for drewworkfirststudent-4620
+Andrew Foell
 
-  const buses = area === "Northwest" ? NW_BUSES : SE_BUSES;
 
-  /* BES */
-  const [besIndex, setBesIndex] = useState(0);
-  const [besUser, setBesUser] = useState("");
-  const [besChecks, setBesChecks] = useState([]);
+Deployments
+7A4YVyJxJ
 
-  const logBES = () => {
-    if (!besUser) return alert("Enter name");
+Deployment
+Logs
+Resources
+Source
+Open Graph
+Deployment Details
+Build Failed
+Command "npm run build" exited with 1
+Created
+github/drewworkfirststudent-droid
+drewworkfirststudent-droid
+1m ago
+Status
+Error
+Latest
+Duration
+12s
+1m ago
+Environment
+Production
+Domains
+safety-app-git-main-andrew-foell-s-projects.vercel.app
+safety-fu3g8uovj-andrew-foell-s-projects.vercel.app
+Source
+main
+38a3f44
+FINAL build with compliance dashboard
 
-    const newEntry = { bus: buses[besIndex], user: besUser };
-    setBesChecks([...besChecks, newEntry]);
+Deployment Settings
+3 Recommendations
+Build Logs
+12s
+1 line selected
 
-    setBesIndex((i) => (i + 1) % buses.length);
-  };
+2
 
-  /* FLEET */
-  const [fleetIndex, setFleetIndex] = useState(0);
-  const [fleetChecks, setFleetChecks] = useState([]);
+1
+Find in logs
+CtrlF
+> safety-app@0.1.0 build
+> react-scripts build
+(node:105) [DEP0176] DeprecationWarning: fs.F_OK is deprecated, use fs.constants.F_OK instead
+(Use `node --trace-deprecation ...` to show where the warning was created)
+Creating an optimized production build...
+Treating warnings as errors because process.env.CI = true.
+Most CI servers set it automatically.
+Failed to compile.
+[eslint] 
+src/App.js
+  Line 37:18:  'setCcmBus' is assigned a value but never used        no-unused-vars
+  Line 40:9:   'logCCM' is assigned a value but never used           no-unused-vars
+  Line 47:24:  'setFacilityType' is assigned a value but never used  no-unused-vars
+  Line 49:24:  'setFacilityPass' is assigned a value but never used  no-unused-vars
+  Line 52:9:   'saveFacility' is assigned a value but never used     no-unused-vars
+Error: Command "npm run build" exited with 1
+Deployment Summary
+Deployment Checks
+Assigning Custom Domains
+Runtime Logs
 
-  const saveFleet = () => {
-    setFleetChecks([...fleetChecks, { bus: buses[fleetIndex] }]);
-    setFleetIndex((i) => (i + 1) % buses.length);
-  };
+View and debug runtime logs & errors
 
-  /* CCM */
-  const [ccmBus, setCcmBus] = useState("");
-  const [ccmChecks, setCcmChecks] = useState([]);
+Observability
 
-  const logCCM = (result) => {
-    if (!ccmBus) return alert("Select bus");
+Monitor app health & performance
 
-    setCcmChecks([...ccmChecks, { bus: ccmBus, result }]);
-  };
+Speed Insights
 
-  /* FACILITY */
-  const [facilityType, setFacilityType] = useState("Extinguisher");
-  const [facilityLocation, setFacilityLocation] = useState("");
-  const [facilityPass, setFacilityPass] = useState(true);
-  const [facilityChecks, setFacilityChecks] = useState([]);
+Not Enabled
+Performance metrics from real users
 
-  const saveFacility = () => {
-    if (!facilityLocation) return alert("Enter location");
+Web Analytics
 
-    setFacilityChecks([
-      ...facilityChecks,
-      {
-        type: facilityType,
-        location: facilityLocation,
-        pass: facilityPass
-      }
-    ]);
+Not Enabled
+Analyze visitors & traffic in real-time
 
-    setFacilityLocation("");
-  };
-
-  /* CALCULATIONS */
-  const besCompleted = besChecks.map(b => b.bus);
-  const fleetCompleted = fleetChecks.map(f => f.bus);
-
-  const besMissing = buses.filter(b => !besCompleted.includes(b));
-  const fleetMissing = buses.filter(b => !fleetCompleted.includes(b));
-
-  const besPercent = Math.round((besCompleted.length / buses.length) * 100);
-  const fleetPercent = Math.round((fleetCompleted.length / buses.length) * 100);
-
-  /* EXPORT */
-  const exportCSV = () => {
-    const rows = [];
-
-    besChecks.forEach(b => rows.push(`BES,${b.bus},${b.user}`));
-    besMissing.forEach(b => rows.push(`BES_MISSED,${b},NOT_DONE`));
-
-    fleetChecks.forEach(f => rows.push(`FLEET,${f.bus},DONE`));
-    fleetMissing.forEach(b => rows.push(`FLEET_MISSED,${b},NOT_DONE`));
-
-    const csv = "Type,Unit,Status\n" + rows.join("\n");
-
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = window.URL.createObjectURL(blob);
-
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "report.csv";
-    a.click();
-  };
-
-  return (
-    <div style={{ padding: 20 }}>
-      <h1>Safety Compliance System</h1>
-
-      <select value={area} onChange={(e) => setArea(e.target.value)}>
-        <option>Northwest</option>
-        <option>Southeast</option>
-      </select>
-
-      <div>
-        <button onClick={() => setTab("dashboard")}>Dashboard</button>
-        <button onClick={() => setTab("bes")}>BES</button>
-        <button onClick={() => setTab("fleet")}>Fleet</button>
-        <button onClick={() => setTab("ccm")}>CCM</button>
-        <button onClick={() => setTab("facility")}>Facility</button>
-      </div>
-
-      {/* DASHBOARD */}
-      {tab === "dashboard" && (
-        <div>
-          <h2>Dashboard</h2>
-
-          <div>BES Compliance: {besPercent}%</div>
-          <div>Fleet Compliance: {fleetPercent}%</div>
-
-          <div>Missing BES: {besMissing.join(", ") || "None"}</div>
-          <div>Missing Fleet: {fleetMissing.join(", ") || "None"}</div>
-
-          <br />
-          <button onClick={exportCSV}>Export Report</button>
-        </div>
-      )}
-
-      {/* BES */}
-      {tab === "bes" && (
-        <div>
-          <h2>BES</h2>
-          <div>Bus: {buses[besIndex]}</div>
-
-          <input
-            placeholder="Name"
-            value={besUser}
-            onChange={(e) => setBesUser(e.target.value)}
-          />
-
-          <button onClick={logBES}>Log</button>
-        </div>
-      )}
-
-      {/* FLEET */}
-      {tab === "fleet" && (
-        <div>
-          <h2>Fleet</h2>
-          <div>Bus: {buses[fleetIndex]}</div>
-
-          <button onClick={saveFleet}>Complete</button>
-        </div>
-      )}
-    </div>
-  );
-}
