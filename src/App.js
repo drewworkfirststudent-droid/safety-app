@@ -1,102 +1,47 @@
 import { useState } from "react";
 
-/* FULL BUS LISTS */
-const NW_BUSES = [
-301,428,371,434,413,226,227,440,382,430,369,450,448,415,423,421,446,
-392,385,807,366,372,221,451,438,401,313,402,425,433,422,300,365,445,
-416,395,805,410,443,417,364,447,386,420,432,411,308,418,419,307,437,
-384,373,435,393,424,404,388,394,398,431,306,370,222,397,458,515,601,
-1,4,18,26,454,218,603,517,30,607,31,20,664,7,210,5,28,665,14,25,516,
-29,24,644
-];
+/ === "Northwest" ? NW_BUSES : SE_BUSES;/* FULL BUS LISTS */
 
-const SE_BUSES = [
-444,390,376,223,449,412,426,456,407,314,374,457,436,226,439,389,
-380,381,406,377,391,405,619,27,215,22,217,643,3,2
-];
-
-export default function App() {
-  const [tab, setTab] = useState("dashboard");
-  const [area, setArea] = useState("Northwest");
-
-  const buses = area === "Northwest" ? NW_BUSES : SE_BUSES;
-
-  /* ================= BES ================= */
+  /* BES */
   const [besUser, setBesUser] = useState("");
   const [besIndex, setBesIndex] = useState(0);
   const [besChecks, setBesChecks] = useState([]);
 
-  const nextBesBus = () => {
-    setBesIndex((i) => (i + 1) % buses.length);
-  };
+  const nextBes = () => setBesIndex((i) => (i + 1) % buses.length);
 
   const logBES = () => {
     if (!besUser) return alert("Enter name");
-
-    setBesChecks([
-      ...besChecks,
-      { bus: buses[besIndex], user: besUser }
-    ]);
-
-    nextBesBus();
+    setBesChecks([...besChecks, { bus: buses[besIndex], user: besUser }]);
+    nextBes();
   };
 
-  /* ================= FLEET ================= */
+  /* FLEET */
   const [fleetIndex, setFleetIndex] = useState(0);
   const [fleetChecks, setFleetChecks] = useState([]);
 
-  const [fleetForm, setFleetForm] = useState({
-    registration: false,
-    insurance: false,
-    firstAid: false,
-    bodyFluid: false,
-    collisionKit: false,
-    childCheckmate: false
-  });
-
   const fleetBus = buses[fleetIndex];
 
-  const nextFleetBus = () => {
-    setFleetIndex((i) => (i + 1) % buses.length);
-  };
+  const nextFleet = () => setFleetIndex((i) => (i + 1) % buses.length);
 
   const saveFleet = () => {
-    setFleetChecks([
-      ...fleetChecks,
-      { bus: fleetBus, ...fleetForm }
-    ]);
-
-    setFleetForm({
-      registration: false,
-      insurance: false,
-      firstAid: false,
-      bodyFluid: false,
-      collisionKit: false,
-      childCheckmate: false
-    });
-
-    nextFleetBus();
+    setFleetChecks([...fleetChecks, { bus: fleetBus }]);
+    nextFleet();
   };
 
-  /* ================= CCM ================= */
+  /* CCM */
   const [ccmBus, setCcmBus] = useState("");
   const [ccmChecks, setCcmChecks] = useState([]);
 
   const logCCM = (result) => {
     if (!ccmBus) return alert("Select bus");
-
-    setCcmChecks([
-      ...ccmChecks,
-      { bus: ccmBus, result }
-    ]);
+    setCcmChecks([...ccmChecks, { bus: ccmBus, result }]);
   };
 
-  /* ================= FACILITY ================= */
+  /* FACILITY */
   const [facilityType, setFacilityType] = useState("Extinguisher");
   const [facilityLocation, setFacilityLocation] = useState("");
   const [facilityPass, setFacilityPass] = useState(true);
   const [facilityNotes, setFacilityNotes] = useState("");
-
   const [facilityChecks, setFacilityChecks] = useState([]);
 
   const saveFacility = () => {
@@ -116,151 +61,150 @@ export default function App() {
     setFacilityNotes("");
   };
 
+  /* COMPLIANCE CALCULATIONS */
+
+  const besCompleted = besChecks.map(b => b.bus);
+  const besMissing = buses.filter(b => !besCompleted.includes(b));
+
+  const fleetCompleted = fleetChecks.map(f => f.bus);
+  const fleetMissing = buses.filter(b => !fleetCompleted.includes(b));
+
+  const besPercent = Math.round((besCompleted.length / buses.length) * 100);
+  const fleetPercent = Math.round((fleetCompleted.length / buses.length) * 100);
+
+  const ccmFails = ccmChecks.filter(c => c.result === "FAIL");
+  const facilityFails = facilityChecks.filter(f => !f.pass);
+
+  /* EXPORT */
+  const exportCSV = () => {
+    let data = [];
+
+    besChecks.forEach(b => {
+      data.push(`BES,${area},${b.bus},${b.user}`);
+    });
+
+    besMissing.forEach(b => {
+      data.push(`BES_MISSED,${area},${b},NOT_COMPLETED`);
+    });
+
+    fleetChecks.forEach(f => {
+      data.push(`FLEET,${area},${f.bus},COMPLETE`);
+    });
+
+    fleetMissing.forEach(b => {
+      data.push(`FLEET_MISSED,${area},${b},NOT_COMPLETED`);
+    });
+
+    ccmChecks.forEach(c => {
+      data.push(`CCM,${area},${c.bus},${c.result}`);
+    });
+
+    facilityChecks.forEach(f => {
+      data.push(`FACILITY,${f.type},${f.location},${f.pass ? "PASS" : "FAIL"},${f.notes}`);
+    });
+
+    const csv = "Type,Area/Category,Bus/Location,Result/Notes\n" + data.join("\n");
+
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.setAttribute("href", url);
+    a.setAttribute("download", "safety_report.csv");
+    a.click();
+  };
+
   return (
     <div style={{ padding: 20 }}>
       <h1>Safety Compliance System</h1>
 
-      {/* AREA */}
-      <select value={area} onChange={(e) => setArea(e.target.value)}>
+      <select value={area} onChange={(e)=>setArea(e.target.value)}>
         <option>Northwest</option>
         <option>Southeast</option>
       </select>
 
-      {/* TABS */}
       <div>
-        <button onClick={() => setTab("dashboard")}>Dashboard</button>
-        <button onClick={() => setTab("bes")}>BES</button>
-        <button onClick={() => setTab("fleet")}>Fleet</button>
-        <button onClick={() => setTab("ccm")}>CCM</button>
-        <button onClick={() => setTab("facility")}>Facility</button>
+        <button onClick={()=>setTab("dashboard")}>Dashboard</button>
+        <button onClick={()=>setTab("bes")}>BES</button>
+        <button onClick={()=>setTab("fleet")}>Fleet</button>
+        <button onClick={()=>setTab("ccm")}>CCM</button>
+        <button onClick={()=>setTab("facility")}>Facility</button>
       </div>
 
-      {/* DASHBOARD */}
       {tab === "dashboard" && (
         <div>
           <h2>Dashboard</h2>
-          <div>Total Buses: {buses.length}</div>
-          <div>BES Logs: {besChecks.length}</div>
-          <div>Fleet Audits: {fleetChecks.length}</div>
-          <div>CCM Checks: {ccmChecks.length}</div>
-          <div>Facility Inspections: {facilityChecks.length}</div>
+
+          <div><b>BES Compliance:</b> {besPercent}% ({besCompleted.length}/{buses.length})</div>
+          <div><b>Fleet Compliance:</b> {fleetPercent}% ({fleetCompleted.length}/{buses.length})</div>
+
+          <div><b>CCM Failures:</b> {ccmFails.length}</div>
+          <div><b>Facility Failures:</b> {facilityFails.length}</div>
+
+          <br />
+          <div><b>Missing BES:</b> {besMissing.join(", ") || "None"}</div>
+          <div><b>Missing Fleet:</b> {fleetMissing.join(", ") || "None"}</div>
+
+          <br />
+          <button onClick={exportCSV}>📤 Export Report</button>
         </div>
       )}
 
-      {/* BES */}
       {tab === "bes" && (
         <div>
           <h2>BES</h2>
+          <div>Bus: {buses[besIndex]}</div>
 
-          <div><b>Current Bus:</b> {buses[besIndex]}</div>
-          <div>Progress: {besIndex + 1} / {buses.length}</div>
+          <input value={besUser} onChange={(e)=>setBesUser(e.target.value)} placeholder="Name" />
 
-          <input
-            placeholder="Name"
-            value={besUser}
-            onChange={(e) => setBesUser(e.target.value)}
-          />
-
-          <button onClick={logBES}>Log Check</button>
-          <button onClick={nextBesBus}>Next Bus</button>
+          <button onClick={logBES}>Log</button>
+          <button onClick={nextBes}>Next</button>
         </div>
       )}
 
-      {/* FLEET */}
       {tab === "fleet" && (
         <div>
-          <h2>Fleet Audit</h2>
+          <h2>Fleet</h2>
 
-          <div><b>Current Bus:</b> {fleetBus}</div>
-          <div>Progress: {fleetIndex + 1} / {buses.length}</div>
+          <div>Bus: {fleetBus}</div>
 
-          {Object.keys(fleetForm).map((key) => (
-            <label key={key} style={{ display: "block" }}>
-              <input
-                type="checkbox"
-                checked={fleetForm[key]}
-                onChange={() =>
-                  setFleetForm({
-                    ...fleetForm,
-                    [key]: !fleetForm[key]
-                  })
-                }
-              />
-              {key}
-            </label>
-          ))}
-
-          <button onClick={saveFleet}>Save Audit</button>
-          <button onClick={nextFleetBus}>Next Bus</button>
+          <button onClick={saveFleet}>Complete</button>
+          <button onClick={nextFleet}>Next</button>
         </div>
       )}
 
-      {/* CCM */}
       {tab === "ccm" && (
         <div>
-          <h2>Child Checkmate</h2>
+          <h2>CCM</h2>
 
-          <select onChange={(e) => setCcmBus(e.target.value)}>
+          <select onChange={(e)=>setCcmBus(e.target.value)}>
             <option value="">Select Bus</option>
-            {buses.map((b) => (
-              <option key={b}>{b}</option>
-            ))}
+            {buses.map(b=> <option key={b}>{b}</option>)}
           </select>
 
-          <button onClick={() => logCCM("PASS")}>Pass</button>
-          <button onClick={() => logCCM("FAIL")}>Fail</button>
-
-          <h4>Results:</h4>
-          {ccmChecks.map((c, i) => (
-            <div key={i}>
-              Bus {c.bus} - {c.result}
-            </div>
-          ))}
+          <button onClick={()=>logCCM("PASS")}>Pass</button>
+          <button onClick={()=>logCCM("FAIL")}>Fail</button>
         </div>
       )}
 
-      {/* FACILITY */}
       {tab === "facility" && (
         <div>
-          <h2>Facility Inspection</h2>
+          <h2>Facility</h2>
 
-          <select onChange={(e) => setFacilityType(e.target.value)}>
+          <select onChange={(e)=>setFacilityType(e.target.value)}>
             <option>Extinguisher</option>
             <option>Eyewash</option>
             <option>CO Alarm</option>
           </select>
 
-          <input
-            placeholder="Location"
-            value={facilityLocation}
-            onChange={(e) => setFacilityLocation(e.target.value)}
-          />
+          <input value={facilityLocation} onChange={(e)=>setFacilityLocation(e.target.value)} placeholder="Location" />
 
           <div>
-            <label>
-              <input
-                type="radio"
-                checked={facilityPass === true}
-                onChange={() => setFacilityPass(true)}
-              />
-              Pass
-            </label>
-
-            <label>
-              <input
-                type="radio"
-                checked={facilityPass === false}
-                onChange={() => setFacilityPass(false)}
-              />
-              Fail
-            </label>
+            <label><input type="radio" checked={facilityPass===true} onChange={()=>setFacilityPass(true)} />Pass</label>
+            <label><input type="radio" checked={facilityPass===false} onChange={()=>setFacilityPass(false)} />Fail</label>
           </div>
 
-          <input
-            placeholder="Notes / Action"
-            value={facilityNotes}
-            onChange={(e) => setFacilityNotes(e.target.value)}
-          />
+          <input value={facilityNotes} onChange={(e)=>setFacilityNotes(e.target.value)} placeholder="Notes" />
 
           <button onClick={saveFacility}>Save</button>
         </div>
@@ -268,3 +212,10 @@ export default function App() {
     </div>
   );
 }
+const NW_BUSES = [301,428,371,434,413,226,227,440,382,430];
+const SE_BUSES = [444,390,376,223,449,412,426,456];
+
+export default function App() {
+  const [tab, setTab] = useState("dashboard");
+  const [area, setArea] = useState("Northwest");
+
