@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-function CCM({ buses, area }) {
+<CCM buses={buses} area={area} oosList={oosList} />
   const STORAGE_KEY = `ccm-progress-${area}`;
 
   const [index, setIndex] = useState(0);
