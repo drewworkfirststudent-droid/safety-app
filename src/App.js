@@ -34,6 +34,9 @@ export default function App() {
   /* DASHBOARD */
   const besPercent = Math.round((besChecks.length / buses.length) * 100) || 0;
   const fleetPercent = Math.round((fleetChecks.length / buses.length) * 100) || 0;
+  const ccmProgress = JSON.parse(localStorage.getItem("ccm-progress") || "{}");
+  const ccmCompleted = Object.keys(ccmProgress.results || {}).length;
+  const ccmPercent = Math.round((ccmCompleted / buses.length) * 100) || 0;
 
   return (
     <div style={{ padding: 20 }}>
@@ -52,12 +55,13 @@ export default function App() {
       </div>
 
       {tab === "dashboard" && (
-        <div>
-          <h2>Dashboard</h2>
-          <div>BES: {besPercent}%</div>
-          <div>Fleet: {fleetPercent}%</div>
-        </div>
-      )}
+  <div>
+    <h2>Dashboard</h2>
+    <div>BES: {besPercent}%</div>
+    <div>Fleet: {fleetPercent}%</div>
+    <div>CCM: {ccmPercent}%</div> {/* ✅ NEW */}
+  </div>
+)}
 
       {tab === "bes" && (
         <div>
