@@ -2,7 +2,7 @@ import CCM from "./modules/ccm/CCM";
 import { useState, useEffect } from "react";
 import { NW_BUSES, SE_BUSES } from "./buses";
 
-const OOS_BUSES = ["305", "412"]; // ✅ TEMP — replace later with CSV
+const OOS_BUSES = ["305", "412"]; // ✅ TEMP list
 
 export default function App() {
 
@@ -102,7 +102,7 @@ export default function App() {
       )}
 
       {tab === "ccm" && (
-       <CCM buses={buses} area={area} oosList={OOS_BUSES} />
+        <CCM buses={buses} area={area} oosList={OOS_BUSES} />
       )}
 
     </div>
