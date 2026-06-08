@@ -48,7 +48,7 @@ export default function App() {
         <button onClick={() => setTab("dashboard")}>Dashboard</button>
         <button onClick={() => setTab("bes")}>BES</button>
         <button onClick={() => setTab("fleet")}>Fleet</button>
-        <button onClick={() => setTab("ccm")}>CCM</button> {/* ✅ NEW */}
+        <button onClick={() => setTab("ccm")}>CCM</button>
       </div>
 
       {tab === "dashboard" && (
@@ -80,7 +80,7 @@ export default function App() {
       )}
 
       {tab === "ccm" && (
-        <CCM />   /* ✅ NEW MODULE */
+        <CCM />
       )}
 
     </div>
