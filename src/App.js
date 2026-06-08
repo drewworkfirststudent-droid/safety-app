@@ -1,3 +1,4 @@
+import CCM from "./modules/ccm/CCM";
 import { useState } from "react";
 import { NW_BUSES, SE_BUSES } from "./buses";
 
@@ -38,15 +39,16 @@ export default function App() {
     <div style={{ padding: 20 }}>
       <h1>Safety Compliance System ✅</h1>
 
-      <select value={area} onChange={(e)=>setArea(e.target.value)}>
+      <select value={area} onChange={(e) => setArea(e.target.value)}>
         <option>Northwest</option>
         <option>Southeast</option>
       </select>
 
       <div>
-        <button onClick={()=>setTab("dashboard")}>Dashboard</button>
-        <button onClick={()=>setTab("bes")}>BES</button>
-        <button onClick={()=>setTab("fleet")}>Fleet</button>
+        <button onClick={() => setTab("dashboard")}>Dashboard</button>
+        <button onClick={() => setTab("bes")}>BES</button>
+        <button onClick={() => setTab("fleet")}>Fleet</button>
+        <button onClick={() => setTab("ccm")}>CCM</button> {/* ✅ NEW */}
       </div>
 
       {tab === "dashboard" && (
@@ -76,6 +78,11 @@ export default function App() {
           <button onClick={nextFleet}>Next</button>
         </div>
       )}
+
+      {tab === "ccm" && (
+        <CCM />   /* ✅ NEW MODULE */
+      )}
+
     </div>
   );
 }
