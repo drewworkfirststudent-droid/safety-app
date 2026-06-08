@@ -13,33 +13,42 @@ export default function App() {
   const [besIndex, setBesIndex] = useState(0);
   const [besChecks, setBesChecks] = useState([]);
 
-  const nextBes = () => setBesIndex(i => (i + 1) % buses.length);
-
-  const logBES = () => {
-    setBesChecks([...besChecks, buses[besIndex]]);
-    nextBes();
-  };
-
   /* FLEET */
   const [fleetIndex, setFleetIndex] = useState(0);
   const [fleetChecks, setFleetChecks] = useState([]);
 
+  /* ✅ RESET ON AREA CHANGE */
+  useEffect(() => {
+    setBesIndex(0);
+    setBesChecks([]);
+
+    setFleetIndex(0);
+    setFleetChecks([]);
+  }, [area]);
+
+  const nextBes = () => setBesIndex(i => (i + 1) % buses.length);
+
+  const logBES = () => {
+    setBesChecks(prev => [...prev, buses[besIndex]]);
+    nextBes();
+  };
+
   const nextFleet = () => setFleetIndex(i => (i + 1) % buses.length);
 
   const logFleet = () => {
-    setFleetChecks([...fleetChecks, buses[fleetIndex]]);
+    setFleetChecks(prev => [...prev, buses[fleetIndex]]);
     nextFleet();
   };
 
-  /* CCM DASHBOARD STATE (FIXED) */
+  /* CCM DASHBOARD STATE */
   const [ccmPercent, setCcmPercent] = useState(0);
 
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem("ccm-progress") || "{}");
+    const saved = JSON.parse(localStorage.getItem(`ccm-progress-${area}`) || "{}");
     const count = Object.keys(saved.results || {}).length;
     const percent = Math.round((count / buses.length) * 100) || 0;
     setCcmPercent(percent);
-  }, [tab, buses.length]);
+  }, [tab, buses.length, area]);
 
   /* DASHBOARD */
   const besPercent = Math.round((besChecks.length / buses.length) * 100) || 0;
@@ -72,7 +81,7 @@ export default function App() {
 
       {tab === "bes" && (
         <div>
-          <h2>BES</h2>
+          <h2>{area} BES</h2>
           <div>Bus: {buses[besIndex]}</div>
 
           <button onClick={logBES}>Log</button>
@@ -82,7 +91,7 @@ export default function App() {
 
       {tab === "fleet" && (
         <div>
-          <h2>Fleet</h2>
+          <h2>{area} Fleet</h2>
           <div>Bus: {buses[fleetIndex]}</div>
 
           <button onClick={logFleet}>Complete</button>
@@ -91,8 +100,8 @@ export default function App() {
       )}
 
       {tab === "ccm" && (
-  <CCM buses={buses} area={area} />
-)}
+        <CCM buses={buses} area={area} />
+      )}
 
     </div>
   );
