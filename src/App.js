@@ -2,7 +2,8 @@ import CCM from "./modules/ccm/CCM";
 import { useState, useEffect } from "react";
 import { NW_BUSES, SE_BUSES } from "./buses";
 
-const OOS_BUSES = ["301"];
+const OOS_NW = ["301", "305"];
+const OOS_SE = ["412", "515"];
 
 export default function App() {
 
