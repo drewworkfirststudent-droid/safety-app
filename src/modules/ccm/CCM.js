@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import { NW_BUSES } from "../../buses";
 
 const STORAGE_KEY = "ccm-progress";
-const buses = NW_BUSES;
+
+function CCM({ buses }) {
 
 function CCM() {
   const [index, setIndex] = useState(0);
