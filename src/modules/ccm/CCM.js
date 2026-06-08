@@ -2,14 +2,13 @@ import { useState, useEffect } from "react";
 import { NW_BUSES } from "../../buses";
 
 const STORAGE_KEY = "ccm-progress";
-
 const buses = NW_BUSES;
 
 function CCM() {
   const [index, setIndex] = useState(0);
   const [results, setResults] = useState({});
 
-  // ✅ LOAD saved data on startup
+  // ✅ Load saved data
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
@@ -19,7 +18,7 @@ function CCM() {
     }
   }, []);
 
-  // ✅ SAVE whenever data changes
+  // ✅ Save data
   useEffect(() => {
     localStorage.setItem(
       STORAGE_KEY,
@@ -43,28 +42,71 @@ function CCM() {
     }
   };
 
+  // ✅ Color helper
+  const getColor = (status) => {
+    if (status === "WORKING") return "green";
+    if (status === "NOT_WORKING") return "red";
+    if (status === "NOT_REQUIRED") return "gray";
+    return "#ccc";
+  };
+
   return (
     <div style={{ padding: "20px" }}>
       <h2>Child Checkmate Verification</h2>
 
-      <div style={{ border: "1px solid #ccc", padding: "20px", borderRadius: "10px" }}>
+      {/* ✅ Current Bus Card */}
+      <div
+        style={{
+          border: "2px solid",
+          borderColor: getColor(results[currentBus]),
+          padding: "20px",
+          borderRadius: "10px",
+          marginBottom: "20px",
+        }}
+      >
         <h3>Bus: {currentBus}</h3>
 
         <button onClick={() => handleResult("WORKING")}>
           Working
         </button>
 
-        <button onClick={() => handleResult("NOT_WORKING")} style={{ marginLeft: "10px" }}>
+        <button
+          onClick={() => handleResult("NOT_WORKING")}
+          style={{ marginLeft: "10px" }}
+        >
           Not Working
         </button>
 
-        <button onClick={() => handleResult("NOT_REQUIRED")} style={{ marginLeft: "10px" }}>
+        <button
+          onClick={() => handleResult("NOT_REQUIRED")}
+          style={{ marginLeft: "10px" }}
+        >
           Not Required
         </button>
 
         <p style={{ marginTop: "15px" }}>
           {index + 1} / {buses.length}
         </p>
+      </div>
+
+      {/* ✅ Fleet Status Grid */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+        {buses.map((bus) => (
+          <div
+            key={bus}
+            style={{
+              width: "60px",
+              padding: "8px",
+              textAlign: "center",
+              borderRadius: "6px",
+              backgroundColor: getColor(results[bus]),
+              color: "white",
+              fontSize: "12px",
+            }}
+          >
+            {bus}
+          </div>
+        ))}
       </div>
     </div>
   );
