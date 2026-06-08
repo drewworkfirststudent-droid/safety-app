@@ -2,6 +2,16 @@ import CCM from "./modules/ccm/CCM";
 import { useState, useEffect } from "react";
 import { NW_BUSES, SE_BUSES } from "./buses";
 
+// ✅ Sample drivers (replace later with roster import)
+const DRIVERS = [
+  "Smith",
+  "Johnson",
+  "Williams",
+  "Brown",
+  "Jones"
+];
+
+// ✅ OOS lists
 const OOS_NW = ["301", "305"];
 const OOS_SE = ["412", "515"];
 
@@ -12,9 +22,12 @@ export default function App() {
   const buses = area === "Northwest" ? NW_BUSES : SE_BUSES;
   const oosList = area === "Northwest" ? OOS_NW : OOS_SE;
 
-  const today = new Date().getDay(); // 0=Sun
-  const isTueToFri = today >= 2 && today <= 5;
+  const today = new Date().getDay();
   const isFriday = today === 5;
+
+  /* DRIVER TRACKING */
+  const [busDrivers, setBusDrivers] = useState({});
+  const [currentDriver, setCurrentDriver] = useState("");
 
   /* BES */
   const [besIndex, setBesIndex] = useState(0);
@@ -33,15 +46,17 @@ export default function App() {
     collisionPacket: false
   };
 
+  /* LOAD */
   useEffect(() => {
-    const savedBES = JSON.parse(localStorage.getItem(`bes-${area}`) || "{}");
-    const savedFleet = JSON.parse(localStorage.getItem(`fleet-${area}`) || "{}");
-
-    setBesResults(savedBES);
-    setFleetResults(savedFleet);
-    setBesIndex(0);
-    setFleetIndex(0);
+    setBusDrivers(JSON.parse(localStorage.getItem(`drivers-${area}`) || "{}"));
+    setBesResults(JSON.parse(localStorage.getItem(`bes-${area}`) || "{}"));
+    setFleetResults(JSON.parse(localStorage.getItem(`fleet-${area}`) || "{}"));
   }, [area]);
+
+  /* SAVE */
+  useEffect(() => {
+    localStorage.setItem(`drivers-${area}`, JSON.stringify(busDrivers));
+  }, [busDrivers, area]);
 
   useEffect(() => {
     localStorage.setItem(`bes-${area}`, JSON.stringify(besResults));
@@ -54,14 +69,10 @@ export default function App() {
   const nextBes = () => setBesIndex(i => (i + 1) % buses.length);
   const nextFleet = () => setFleetIndex(i => (i + 1) % buses.length);
 
-  /* CCM */
-  const [ccmPercent, setCcmPercent] = useState(0);
-
-  useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem(`ccm-progress-${area}`) || "{}");
-    const count = Object.keys(saved.results || {}).length;
-    setCcmPercent(Math.round((count / buses.length) * 100) || 0);
-  }, [tab, buses.length, area]);
+  const assignDriver = (bus) => {
+    if (!currentDriver) return;
+    setBusDrivers(prev => ({ ...prev, [bus]: currentDriver }));
+  };
 
   /* STATUS */
   const getBesStatus = (bus) => {
@@ -77,43 +88,11 @@ export default function App() {
     return Object.values(items).every(v => v) ? "green" : "red";
   };
 
-  /* METRICS */
-  const besMissed = buses.filter(b => !besResults[b]).length;
-  const fleetMissed = buses.filter(b => !fleetResults[b]).length;
+  /* MISSED */
+  const missedBES = buses.filter(b => !besResults[b]);
+  const missedFleet = buses.filter(b => !fleetResults[b]);
 
-  const systemCompliant =
-    besMissed === 0 &&
-    fleetMissed === 0 &&
-    ccmPercent === 100;
-
-  const downloadLog = () => {
-    const log = [
-      ["Type", "Bus", "Area"],
-      ...Object.entries(besResults).map(([bus, status]) => ["BES", bus, status]),
-      ...Object.entries(fleetResults).map(([bus, data]) => ["Fleet", bus, JSON.stringify(data)])
-    ];
-
-    const csv = log.map(r => r.join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `log-${area}-${Date.now()}.csv`;
-    a.click();
-  };
-
-  const resetDaily = () => {
-    if (window.confirm("Reset ALL data for this yard?")) {
-      localStorage.removeItem(`bes-${area}`);
-      localStorage.removeItem(`fleet-${area}`);
-
-      setBesResults({});
-      setFleetResults({});
-      setBesIndex(0);
-      setFleetIndex(0);
-    }
-  };
+  const missedCombined = [...new Set([...missedBES, ...missedFleet])];
 
   return (
     <div style={{ padding: 20 }}>
@@ -131,56 +110,62 @@ export default function App() {
         <button onClick={() => setTab("ccm")}>CCM</button>
       </div>
 
+      {/* ✅ DRIVER SELECT */}
+      <div style={{ marginTop: 10 }}>
+        Driver:
+        <select value={currentDriver} onChange={(e) => setCurrentDriver(e.target.value)}>
+          <option value="">Select Driver</option>
+          {DRIVERS.map(d => <option key={d}>{d}</option>)}
+        </select>
+      </div>
+
       {/* ✅ DASHBOARD */}
       {tab === "dashboard" && (
         <div>
           <h2>Dashboard</h2>
 
-          {isTueToFri && !isFriday && (
-            <div style={{ color: "orange", fontWeight: "bold" }}>
-              ⚠️ IN PROGRESS — Completion window open (Tue–Fri)
-            </div>
-          )}
-
           {isFriday && (
-            <div style={{ fontWeight: "bold" }}>
-              {systemCompliant ? (
-                <span style={{ color: "green" }}>
-                  ✅ COMPLIANT — All buses verified
-                </span>
-              ) : (
-                <span style={{ color: "red" }}>
-                  🚨 FINAL NON-COMPLIANCE — Missed buses will be cited
-                </span>
-              )}
+            <div style={{ color: "red", fontWeight: "bold" }}>
+              🚨 FINAL COMPLIANCE REVIEW
             </div>
           )}
 
-          <div>BES Missed: {besMissed}</div>
-          <div>Fleet Missed: {fleetMissed}</div>
-          <div>CCM: {ccmPercent}%</div>
+          <h3>Missed Buses</h3>
+          {missedCombined.length === 0 ? (
+            <div>✅ None</div>
+          ) : (
+            missedCombined.map(bus => (
+              <div key={bus}>
+                Bus {bus} — Driver: {busDrivers[bus] || "UNKNOWN"}
+              </div>
+            ))
+          )}
         </div>
       )}
 
-      {/* BES */}
+      {/* ✅ BES */}
       {tab === "bes" && (
         <div>
           <h2>{area} BES</h2>
           <div>Bus: {buses[besIndex]}</div>
 
           <button onClick={() => {
+            assignDriver(buses[besIndex]);
             setBesResults(p => ({ ...p, [buses[besIndex]]: "OK" }));
             nextBes();
-          }}>Tag ✅</button>
+          }}>
+            Tag ✅
+          </button>
 
           <button onClick={() => {
+            assignDriver(buses[besIndex]);
             setBesResults(p => ({ ...p, [buses[besIndex]]: "MISSING" }));
             nextBes();
           }} style={{ marginLeft: 10 }}>
             Missing ❌
           </button>
 
-          <div style={{ display: "flex", flexWrap: "wrap", marginTop: 20 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", marginTop: 10 }}>
             {buses.map(b => (
               <div key={b} style={{
                 width: 60,
@@ -194,7 +179,7 @@ export default function App() {
         </div>
       )}
 
-      {/* FLEET */}
+      {/* ✅ FLEET */}
       {tab === "fleet" && (
         <div>
           <h2>{area} Fleet</h2>
@@ -207,6 +192,7 @@ export default function App() {
                   type="checkbox"
                   checked={fleetResults[buses[fleetIndex]]?.[k] || false}
                   onChange={(e) => {
+                    assignDriver(buses[fleetIndex]);
                     setFleetResults(p => ({
                       ...p,
                       [buses[fleetIndex]]: {
@@ -223,7 +209,7 @@ export default function App() {
 
           <button onClick={nextFleet}>Next Bus</button>
 
-          <div style={{ display: "flex", flexWrap: "wrap", marginTop: 20 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", marginTop: 10 }}>
             {buses.map(b => (
               <div key={b} style={{
                 width: 60,
@@ -240,13 +226,6 @@ export default function App() {
       {tab === "ccm" && (
         <CCM buses={buses} area={area} oosList={oosList} />
       )}
-
-      <hr />
-
-      <button onClick={resetDaily}>Reset {area}</button>
-      <button onClick={downloadLog} style={{ marginLeft: 10 }}>
-        Download Log
-      </button>
     </div>
   );
 }
