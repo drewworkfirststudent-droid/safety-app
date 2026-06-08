@@ -7,7 +7,7 @@ function CCM({ buses, area }) {
   const [results, setResults] = useState({});
 
   // ✅ Day logic
-  const today = new Date().getDay(); // 0=Sun, 2=Tue
+  const today = new Date().getDay();
   const isTuesday = today === 2;
 
   // ✅ Load saved data (per yard)
@@ -69,7 +69,9 @@ function CCM({ buses, area }) {
       {/* ✅ Tuesday Mode Banner */}
       <div style={{ marginBottom: "15px", fontWeight: "bold" }}>
         {isTuesday ? (
-          <span style={{ color: "green" }}>Tuesday Compliance Mode ✅</span>
+          <span style={{ color: "green" }}>
+            Tuesday Compliance Mode ✅
+          </span>
         ) : (
           <span style={{ color: "orange" }}>
             Not Tuesday — CCM optional
@@ -159,7 +161,7 @@ function CCM({ buses, area }) {
         ))}
       </div>
 
-      {/* ✅ Completion confirmation (Tuesday only) */}
+      {/* ✅ Completion confirmation */}
       {isTuesday && Object.keys(results).length === buses.length && (
         <div style={{ color: "green", marginTop: "15px", fontWeight: "bold" }}>
           ✅ All buses verified for Tuesday
