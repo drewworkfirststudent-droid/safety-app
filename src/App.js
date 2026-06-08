@@ -91,8 +91,8 @@ export default function App() {
       )}
 
       {tab === "ccm" && (
-        <CCM />
-      )}
+  <CCM buses={buses} />
+)}
 
     </div>
   );
