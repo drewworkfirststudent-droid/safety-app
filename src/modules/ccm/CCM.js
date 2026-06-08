@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { NW_BUSES } from "../../buses";
+
 const buses = NW_BUSES;
 
 function CCM() {
   const [index, setIndex] = useState(0);
-  const [results, setResults] = useState({});
+  const [, setResults] = useState({}); // ✅ removes unused var error
 
   const currentBus = buses[index];
 
