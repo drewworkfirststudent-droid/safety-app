@@ -12,7 +12,9 @@ export default function App() {
   const buses = area === "Northwest" ? NW_BUSES : SE_BUSES;
   const oosList = area === "Northwest" ? OOS_NW : OOS_SE;
 
-  const isTuesday = new Date().getDay() === 2;
+  const today = new Date().getDay(); // 0=Sun
+  const isTueToFri = today >= 2 && today <= 5;
+  const isFriday = today === 5;
 
   /* BES */
   const [besIndex, setBesIndex] = useState(0);
@@ -61,7 +63,7 @@ export default function App() {
     setCcmPercent(Math.round((count / buses.length) * 100) || 0);
   }, [tab, buses.length, area]);
 
-  /* STATUS HELPERS */
+  /* STATUS */
   const getBesStatus = (bus) => {
     if (besResults[bus] === "OK") return "green";
     if (besResults[bus] === "MISSING") return "red";
@@ -79,12 +81,11 @@ export default function App() {
   const besMissed = buses.filter(b => !besResults[b]).length;
   const fleetMissed = buses.filter(b => !fleetResults[b]).length;
 
-  const besCompliant = besMissed === 0;
-  const fleetCompliant = fleetMissed === 0;
+  const systemCompliant =
+    besMissed === 0 &&
+    fleetMissed === 0 &&
+    ccmPercent === 100;
 
-  const systemCompliant = besCompliant && fleetCompliant && ccmPercent === 100;
-
-  /* DOWNLOAD */
   const downloadLog = () => {
     const log = [
       ["Type", "Bus", "Area"],
@@ -135,15 +136,21 @@ export default function App() {
         <div>
           <h2>Dashboard</h2>
 
-          {isTuesday && (
-            <div style={{ fontWeight: "bold", marginBottom: 10 }}>
+          {isTueToFri && !isFriday && (
+            <div style={{ color: "orange", fontWeight: "bold" }}>
+              ⚠️ IN PROGRESS — Completion window open (Tue–Fri)
+            </div>
+          )}
+
+          {isFriday && (
+            <div style={{ fontWeight: "bold" }}>
               {systemCompliant ? (
                 <span style={{ color: "green" }}>
                   ✅ COMPLIANT — All buses verified
                 </span>
               ) : (
                 <span style={{ color: "red" }}>
-                  🚨 NON-COMPLIANT — Action required
+                  🚨 FINAL NON-COMPLIANCE — Missed buses will be cited
                 </span>
               )}
             </div>
