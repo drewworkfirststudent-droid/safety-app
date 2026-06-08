@@ -12,9 +12,11 @@ export default function App() {
   const [area, setArea] = useState("Northwest");
 
   const buses = area === "Northwest" ? NW_BUSES : SE_BUSES;
-
-  // ✅ Dynamic OOS selection
   const oosList = area === "Northwest" ? OOS_NW : OOS_SE;
+
+  // ✅ STORAGE KEYS (PER YARD)
+  const BES_KEY = `bes-${area}`;
+  const FLEET_KEY = `fleet-${area}`;
 
   /* BES */
   const [besIndex, setBesIndex] = useState(0);
@@ -24,13 +26,25 @@ export default function App() {
   const [fleetIndex, setFleetIndex] = useState(0);
   const [fleetChecks, setFleetChecks] = useState([]);
 
-  /* ✅ RESET ON AREA CHANGE */
+  // ✅ LOAD PER AREA
   useEffect(() => {
+    const savedBES = JSON.parse(localStorage.getItem(BES_KEY) || "[]");
+    const savedFleet = JSON.parse(localStorage.getItem(FLEET_KEY) || "[]");
+
+    setBesChecks(savedBES);
+    setFleetChecks(savedFleet);
     setBesIndex(0);
-    setBesChecks([]);
     setFleetIndex(0);
-    setFleetChecks([]);
   }, [area]);
+
+  // ✅ SAVE PER AREA
+  useEffect(() => {
+    localStorage.setItem(BES_KEY, JSON.stringify(besChecks));
+  }, [besChecks, BES_KEY]);
+
+  useEffect(() => {
+    localStorage.setItem(FLEET_KEY, JSON.stringify(fleetChecks));
+  }, [fleetChecks, FLEET_KEY]);
 
   const nextBes = () => setBesIndex(i => (i + 1) % buses.length);
 
@@ -46,7 +60,7 @@ export default function App() {
     nextFleet();
   };
 
-  /* CCM DASHBOARD STATE */
+  /* CCM DASHBOARD */
   const [ccmPercent, setCcmPercent] = useState(0);
 
   useEffect(() => {
@@ -59,6 +73,37 @@ export default function App() {
   /* DASHBOARD */
   const besPercent = Math.round((besChecks.length / buses.length) * 100) || 0;
   const fleetPercent = Math.round((fleetChecks.length / buses.length) * 100) || 0;
+
+  // ✅ DOWNLOAD LOG
+  const downloadLog = () => {
+    const log = [
+      ["Type", "Bus", "Area", "Date"],
+      ...besChecks.map(bus => ["BES", bus, area, new Date().toLocaleDateString()]),
+      ...fleetChecks.map(bus => ["Fleet", bus, area, new Date().toLocaleDateString()])
+    ];
+
+    const csv = log.map(row => row.join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `safety-log-${area}-${Date.now()}.csv`;
+    a.click();
+  };
+
+  // ✅ DAILY RESET
+  const resetDaily = () => {
+    if (window.confirm("Reset BES & Fleet for this yard?")) {
+      localStorage.removeItem(BES_KEY);
+      localStorage.removeItem(FLEET_KEY);
+
+      setBesChecks([]);
+      setFleetChecks([]);
+      setBesIndex(0);
+      setFleetIndex(0);
+    }
+  };
 
   return (
     <div style={{ padding: 20 }}>
@@ -108,6 +153,16 @@ export default function App() {
       {tab === "ccm" && (
         <CCM buses={buses} area={area} oosList={oosList} />
       )}
+
+      <hr style={{ margin: "20px 0" }} />
+
+      <button onClick={resetDaily}>
+        Reset {area} Daily Logs
+      </button>
+
+      <button onClick={downloadLog} style={{ marginLeft: "10px" }}>
+        Download {area} Log
+      </button>
 
     </div>
   );
