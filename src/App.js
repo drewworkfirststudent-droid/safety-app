@@ -2,6 +2,7 @@ import CCM from "./modules/ccm/CCM";
 import { useState, useEffect } from "react";
 import { NW_BUSES, SE_BUSES } from "./buses";
 
+// ✅ OOS lists per yard
 const OOS_NW = ["301", "305"];
 const OOS_SE = ["412", "515"];
 
@@ -11,6 +12,9 @@ export default function App() {
   const [area, setArea] = useState("Northwest");
 
   const buses = area === "Northwest" ? NW_BUSES : SE_BUSES;
+
+  // ✅ Dynamic OOS selection
+  const oosList = area === "Northwest" ? OOS_NW : OOS_SE;
 
   /* BES */
   const [besIndex, setBesIndex] = useState(0);
@@ -24,7 +28,6 @@ export default function App() {
   useEffect(() => {
     setBesIndex(0);
     setBesChecks([]);
-
     setFleetIndex(0);
     setFleetChecks([]);
   }, [area]);
@@ -103,7 +106,7 @@ export default function App() {
       )}
 
       {tab === "ccm" && (
-        <CCM buses={buses} area={area} oosList={OOS_BUSES} />
+        <CCM buses={buses} area={area} oosList={oosList} />
       )}
 
     </div>
