@@ -1,20 +1,26 @@
 import { useState, useEffect } from "react";
 
-const STORAGE_KEY = "ccm-progress";
+function CCM({ buses, area }) {
+  // ✅ Dynamic storage key based on yard
+  const STORAGE_KEY = `ccm-progress-${area}`;
 
-function CCM({ buses }) {
   const [index, setIndex] = useState(0);
   const [results, setResults] = useState({});
 
+  // ✅ Load saved data (per yard)
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       const parsed = JSON.parse(saved);
       setIndex(parsed.index || 0);
       setResults(parsed.results || {});
+    } else {
+      setIndex(0);
+      setResults({});
     }
-  }, []);
+  }, [STORAGE_KEY]);
 
+  // ✅ Save data
   useEffect(() => {
     localStorage.setItem(
       STORAGE_KEY,
@@ -23,7 +29,7 @@ function CCM({ buses }) {
         results,
       })
     );
-  }, [index, results]);
+  }, [index, results, STORAGE_KEY]);
 
   const currentBus = buses[index];
 
@@ -39,7 +45,7 @@ function CCM({ buses }) {
   };
 
   const handleReset = () => {
-    if (window.confirm("Reset all CCM progress?")) {
+    if (window.confirm(`Reset CCM for ${area}?`)) {
       localStorage.removeItem(STORAGE_KEY);
       setIndex(0);
       setResults({});
@@ -55,7 +61,7 @@ function CCM({ buses }) {
 
   return (
     <div style={{ padding: "20px" }}>
-      <h2>Child Checkmate Verification</h2>
+      <h2>{area} Child Checkmate Verification</h2>
 
       {index > 0 && currentBus && (
         <div style={{ marginBottom: "15px", fontWeight: "bold" }}>
@@ -72,7 +78,7 @@ function CCM({ buses }) {
           padding: "6px 10px",
         }}
       >
-        Reset Week
+        Reset {area}
       </button>
 
       <div
