@@ -2,12 +2,11 @@ import CCM from "./modules/ccm/CCM";
 import { useState, useEffect } from "react";
 import { NW_BUSES, SE_BUSES } from "./buses";
 
-// ✅ OOS lists per yard
+// ✅ OOS lists
 const OOS_NW = ["301", "305"];
 const OOS_SE = ["412", "515"];
 
 export default function App() {
-
   const [tab, setTab] = useState("dashboard");
   const [area, setArea] = useState("Northwest");
 
@@ -16,89 +15,99 @@ export default function App() {
 
   /* BES */
   const [besIndex, setBesIndex] = useState(0);
-  const [besChecks, setBesChecks] = useState([]);
+  const [besResults, setBesResults] = useState({});
 
   /* FLEET */
   const [fleetIndex, setFleetIndex] = useState(0);
-  const [fleetChecks, setFleetChecks] = useState([]);
+  const [fleetResults, setFleetResults] = useState({});
 
-  // ✅ LOAD PER AREA
+  const fleetTemplate = {
+    extinguisher: false,
+    registration: false,
+    insurance: false,
+    firstAid: false,
+    bodyFluid: false,
+    collisionPacket: false
+  };
+
+  /* ✅ LOAD */
   useEffect(() => {
-    const savedBES = JSON.parse(localStorage.getItem(`bes-${area}`) || "[]");
-    const savedFleet = JSON.parse(localStorage.getItem(`fleet-${area}`) || "[]");
+    const savedBES = JSON.parse(localStorage.getItem(`bes-${area}`) || "{}");
+    const savedFleet = JSON.parse(localStorage.getItem(`fleet-${area}`) || "{}");
 
-    setBesChecks(savedBES);
-    setFleetChecks(savedFleet);
+    setBesResults(savedBES);
+    setFleetResults(savedFleet);
     setBesIndex(0);
     setFleetIndex(0);
   }, [area]);
 
-  // ✅ SAVE PER AREA
+  /* ✅ SAVE */
   useEffect(() => {
-    localStorage.setItem(`bes-${area}`, JSON.stringify(besChecks));
-  }, [besChecks, area]);
+    localStorage.setItem(`bes-${area}`, JSON.stringify(besResults));
+  }, [besResults, area]);
 
   useEffect(() => {
-    localStorage.setItem(`fleet-${area}`, JSON.stringify(fleetChecks));
-  }, [fleetChecks, area]);
+    localStorage.setItem(`fleet-${area}`, JSON.stringify(fleetResults));
+  }, [fleetResults, area]);
 
   const nextBes = () => setBesIndex(i => (i + 1) % buses.length);
-
-  const logBES = () => {
-    setBesChecks(prev => [...prev, buses[besIndex]]);
-    nextBes();
-  };
-
   const nextFleet = () => setFleetIndex(i => (i + 1) % buses.length);
 
-  const logFleet = () => {
-    setFleetChecks(prev => [...prev, buses[fleetIndex]]);
-    nextFleet();
-  };
-
-  /* CCM DASHBOARD */
+  /* CCM % */
   const [ccmPercent, setCcmPercent] = useState(0);
 
   useEffect(() => {
     const saved = JSON.parse(localStorage.getItem(`ccm-progress-${area}`) || "{}");
     const count = Object.keys(saved.results || {}).length;
-    const percent = Math.round((count / buses.length) * 100) || 0;
-    setCcmPercent(percent);
+    setCcmPercent(Math.round((count / buses.length) * 100) || 0);
   }, [tab, buses.length, area]);
 
-  /* DASHBOARD */
-  const besPercent = Math.round((besChecks.length / buses.length) * 100) || 0;
-  const fleetPercent = Math.round((fleetChecks.length / buses.length) * 100) || 0;
+  const besPercent = Math.round((Object.keys(besResults).length / buses.length) * 100) || 0;
 
-  // ✅ DOWNLOAD LOG
+  const fleetPercent =
+    Math.round(
+      (Object.keys(fleetResults).filter(
+        b => Object.values(fleetResults[b] || {}).every(v => v)
+      ).length / buses.length) * 100
+    ) || 0;
+
+  /* ✅ DOWNLOAD */
   const downloadLog = () => {
     const log = [
       ["Type", "Bus", "Area", "Date"],
-      ...besChecks.map(bus => ["BES", bus, area, new Date().toLocaleDateString()]),
-      ...fleetChecks.map(bus => ["Fleet", bus, area, new Date().toLocaleDateString()])
+      ...Object.entries(besResults).map(([bus, status]) => ["BES", bus, status, area]),
+      ...Object.entries(fleetResults).map(([bus, items]) => ["Fleet", bus, JSON.stringify(items), area])
     ];
 
-    const csv = log.map(row => row.join(",")).join("\n");
+    const csv = log.map(r => r.join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
 
     const a = document.createElement("a");
     a.href = url;
-    a.download = `safety-log-${area}-${Date.now()}.csv`;
+    a.download = `log-${area}-${Date.now()}.csv`;
     a.click();
   };
 
-  // ✅ DAILY RESET
   const resetDaily = () => {
-    if (window.confirm("Reset BES & Fleet for this yard?")) {
+    if (window.confirm("Reset ALL data for this yard?")) {
       localStorage.removeItem(`bes-${area}`);
       localStorage.removeItem(`fleet-${area}`);
 
-      setBesChecks([]);
-      setFleetChecks([]);
+      setBesResults({});
+      setFleetResults({});
       setBesIndex(0);
       setFleetIndex(0);
     }
+  };
+
+  /* ✅ HELPERS */
+  const getBesColor = (status) =>
+    status === "OK" ? "green" : status === "MISSING" ? "red" : "#ccc";
+
+  const getFleetColor = (items) => {
+    if (!items) return "#ccc";
+    return Object.values(items).every(v => v) ? "green" : "red";
   };
 
   return (
@@ -126,40 +135,99 @@ export default function App() {
         </div>
       )}
 
+      {/* ✅ BES */}
       {tab === "bes" && (
         <div>
           <h2>{area} BES</h2>
           <div>Bus: {buses[besIndex]}</div>
 
-          <button onClick={logBES}>Log</button>
-          <button onClick={nextBes}>Next</button>
+          <button
+            onClick={() => {
+              setBesResults(p => ({ ...p, [buses[besIndex]]: "OK" }));
+              nextBes();
+            }}
+          >
+            Tag ✅
+          </button>
+
+          <button
+            onClick={() => {
+              setBesResults(p => ({ ...p, [buses[besIndex]]: "MISSING" }));
+              nextBes();
+            }}
+            style={{ marginLeft: 10 }}
+          >
+            Missing ❌
+          </button>
+
+          <div style={{ marginTop: 20, display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {buses.map(b => (
+              <div key={b} style={{
+                width: 60,
+                backgroundColor: getBesColor(besResults[b]),
+                color: "white",
+                textAlign: "center",
+                borderRadius: 6
+              }}>{b}</div>
+            ))}
+          </div>
         </div>
       )}
 
+      {/* ✅ FLEET */}
       {tab === "fleet" && (
         <div>
           <h2>{area} Fleet</h2>
           <div>Bus: {buses[fleetIndex]}</div>
 
-          <button onClick={logFleet}>Complete</button>
-          <button onClick={nextFleet}>Next</button>
+          {Object.keys(fleetTemplate).map(key => (
+            <div key={key}>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={fleetResults[buses[fleetIndex]]?.[key] || false}
+                  onChange={(e) => {
+                    setFleetResults(prev => ({
+                      ...prev,
+                      [buses[fleetIndex]]: {
+                        ...(prev[buses[fleetIndex]] || fleetTemplate),
+                        [key]: e.target.checked
+                      }
+                    }));
+                  }}
+                />
+                {key}
+              </label>
+            </div>
+          ))}
+
+          <button onClick={nextFleet}>Next Bus</button>
+
+          <div style={{ marginTop: 20, display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {buses.map(b => (
+              <div key={b} style={{
+                width: 60,
+                backgroundColor: getFleetColor(fleetResults[b]),
+                color: "white",
+                textAlign: "center",
+                borderRadius: 6
+              }}>{b}</div>
+            ))}
+          </div>
         </div>
       )}
 
+      {/* ✅ CCM */}
       {tab === "ccm" && (
         <CCM buses={buses} area={area} oosList={oosList} />
       )}
 
-      <hr style={{ margin: "20px 0" }} />
+      <hr />
 
-      <button onClick={resetDaily}>
-        Reset {area} Daily Logs
+      <button onClick={resetDaily}>Reset {area}</button>
+      <button onClick={downloadLog} style={{ marginLeft: 10 }}>
+        Download Log
       </button>
-
-      <button onClick={downloadLog} style={{ marginLeft: "10px" }}>
-        Download {area} Log
-      </button>
-
     </div>
   );
 }
