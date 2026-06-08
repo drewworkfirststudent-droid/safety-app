@@ -1,5 +1,5 @@
 import CCM from "./modules/ccm/CCM";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { NW_BUSES, SE_BUSES } from "./buses";
 
 export default function App() {
@@ -31,12 +31,19 @@ export default function App() {
     nextFleet();
   };
 
+  /* CCM DASHBOARD STATE (FIXED) */
+  const [ccmPercent, setCcmPercent] = useState(0);
+
+  useEffect(() => {
+    const saved = JSON.parse(localStorage.getItem("ccm-progress") || "{}");
+    const count = Object.keys(saved.results || {}).length;
+    const percent = Math.round((count / buses.length) * 100) || 0;
+    setCcmPercent(percent);
+  }, [tab, buses.length]);
+
   /* DASHBOARD */
   const besPercent = Math.round((besChecks.length / buses.length) * 100) || 0;
   const fleetPercent = Math.round((fleetChecks.length / buses.length) * 100) || 0;
-  const ccmProgress = JSON.parse(localStorage.getItem("ccm-progress") || "{}");
-  const ccmCompleted = Object.keys(ccmProgress.results || {}).length;
-  const ccmPercent = Math.round((ccmCompleted / buses.length) * 100) || 0;
 
   return (
     <div style={{ padding: 20 }}>
@@ -55,13 +62,13 @@ export default function App() {
       </div>
 
       {tab === "dashboard" && (
-  <div>
-    <h2>Dashboard</h2>
-    <div>BES: {besPercent}%</div>
-    <div>Fleet: {fleetPercent}%</div>
-    <div>CCM: {ccmPercent}%</div> {/* ✅ NEW */}
-  </div>
-)}
+        <div>
+          <h2>Dashboard</h2>
+          <div>BES: {besPercent}%</div>
+          <div>Fleet: {fleetPercent}%</div>
+          <div>CCM: {ccmPercent}%</div>
+        </div>
+      )}
 
       {tab === "bes" && (
         <div>
