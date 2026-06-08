@@ -3,12 +3,9 @@ import { useState, useEffect } from "react";
 const STORAGE_KEY = "ccm-progress";
 
 function CCM({ buses }) {
-
-function CCM() {
   const [index, setIndex] = useState(0);
   const [results, setResults] = useState({});
 
-  // ✅ Load saved data
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
@@ -18,7 +15,6 @@ function CCM() {
     }
   }, []);
 
-  // ✅ Save data
   useEffect(() => {
     localStorage.setItem(
       STORAGE_KEY,
@@ -42,7 +38,6 @@ function CCM() {
     }
   };
 
-  // ✅ Reset function
   const handleReset = () => {
     if (window.confirm("Reset all CCM progress?")) {
       localStorage.removeItem(STORAGE_KEY);
@@ -51,7 +46,6 @@ function CCM() {
     }
   };
 
-  // ✅ Color helper
   const getColor = (status) => {
     if (status === "WORKING") return "green";
     if (status === "NOT_WORKING") return "red";
@@ -63,14 +57,12 @@ function CCM() {
     <div style={{ padding: "20px" }}>
       <h2>Child Checkmate Verification</h2>
 
-      {/* ✅ Resume banner */}
-      {index > 0 && (
+      {index > 0 && currentBus && (
         <div style={{ marginBottom: "15px", fontWeight: "bold" }}>
           Resuming at Bus {currentBus}
         </div>
       )}
 
-      {/* ✅ Reset button */}
       <button
         onClick={handleReset}
         style={{
@@ -83,7 +75,6 @@ function CCM() {
         Reset Week
       </button>
 
-      {/* ✅ Current Bus Card */}
       <div
         style={{
           border: "2px solid",
@@ -118,7 +109,6 @@ function CCM() {
         </p>
       </div>
 
-      {/* ✅ Fleet Status Grid */}
       <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
         {buses.map((bus) => (
           <div
