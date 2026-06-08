@@ -1,16 +1,15 @@
 import { useState, useEffect } from "react";
 
-<CCM buses={buses} area={area} oosList={oosList} />
+function CCM({ buses, area, oosList = [] }) {
   const STORAGE_KEY = `ccm-progress-${area}`;
 
   const [index, setIndex] = useState(0);
   const [results, setResults] = useState({});
 
-  // ✅ Day logic
   const today = new Date().getDay();
   const isTuesday = today === 2;
 
-  // ✅ Load saved data (per yard)
+  // ✅ Load saved data
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
@@ -23,14 +22,28 @@ import { useState, useEffect } from "react";
     }
   }, [STORAGE_KEY]);
 
+  // ✅ OOS auto mark
+  useEffect(() => {
+    if (!oosList.length) return;
+
+    setResults((prev) => {
+      const updated = { ...prev };
+
+      oosList.forEach((bus) => {
+        if (!updated[bus]) {
+          updated[bus] = "NOT_REQUIRED";
+        }
+      });
+
+      return updated;
+    });
+  }, [oosList]);
+
   // ✅ Save data
   useEffect(() => {
     localStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify({
-        index,
-        results,
-      })
+      JSON.stringify({ index, results })
     );
   }, [index, results, STORAGE_KEY]);
 
@@ -66,12 +79,9 @@ import { useState, useEffect } from "react";
     <div style={{ padding: "20px" }}>
       <h2>{area} Child Checkmate Verification</h2>
 
-      {/* ✅ Tuesday Mode Banner */}
       <div style={{ marginBottom: "15px", fontWeight: "bold" }}>
         {isTuesday ? (
-          <span style={{ color: "green" }}>
-            Tuesday Compliance Mode ✅
-          </span>
+          <span style={{ color: "green" }}>Tuesday Compliance Mode ✅</span>
         ) : (
           <span style={{ color: "orange" }}>
             Not Tuesday — CCM optional
@@ -79,34 +89,31 @@ import { useState, useEffect } from "react";
         )}
       </div>
 
-      {/* ✅ Resume banner */}
       {index > 0 && currentBus && (
         <div style={{ marginBottom: "15px", fontWeight: "bold" }}>
           Resuming at Bus {currentBus}
         </div>
       )}
 
-      {/* ✅ Reset */}
       <button
         onClick={handleReset}
         style={{
           marginBottom: "15px",
           backgroundColor: "black",
           color: "white",
-          padding: "6px 10px",
+          padding: "6px 10px"
         }}
       >
         Reset {area}
       </button>
 
-      {/* ✅ Current Bus */}
       <div
         style={{
           border: "2px solid",
           borderColor: getColor(results[currentBus]),
           padding: "20px",
           borderRadius: "10px",
-          marginBottom: "20px",
+          marginBottom: "20px"
         }}
       >
         <h3>Bus: {currentBus}</h3>
@@ -133,7 +140,6 @@ import { useState, useEffect } from "react";
           {index + 1} / {buses.length}
         </p>
 
-        {/* ✅ Tuesday requirement warning */}
         {isTuesday && index < buses.length - 1 && (
           <div style={{ color: "red", marginTop: "10px" }}>
             ⚠️ All in-service buses must be verified today
@@ -141,7 +147,6 @@ import { useState, useEffect } from "react";
         )}
       </div>
 
-      {/* ✅ Fleet Grid */}
       <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
         {buses.map((bus) => (
           <div
@@ -153,7 +158,7 @@ import { useState, useEffect } from "react";
               borderRadius: "6px",
               backgroundColor: getColor(results[bus]),
               color: "white",
-              fontSize: "12px",
+              fontSize: "12px"
             }}
           >
             {bus}
@@ -161,7 +166,6 @@ import { useState, useEffect } from "react";
         ))}
       </div>
 
-      {/* ✅ Completion confirmation */}
       {isTuesday && Object.keys(results).length === buses.length && (
         <div style={{ color: "green", marginTop: "15px", fontWeight: "bold" }}>
           ✅ All buses verified for Tuesday
