@@ -53,7 +53,7 @@ export default function App() {
   const nextBes = () => setBesIndex(i => (i + 1) % buses.length);
   const nextFleet = () => setFleetIndex(i => (i + 1) % buses.length);
 
-  /* CCM % */
+  /* CCM DASHBOARD */
   const [ccmPercent, setCcmPercent] = useState(0);
 
   useEffect(() => {
@@ -62,7 +62,25 @@ export default function App() {
     setCcmPercent(Math.round((count / buses.length) * 100) || 0);
   }, [tab, buses.length, area]);
 
-  const besPercent = Math.round((Object.keys(besResults).length / buses.length) * 100) || 0;
+  /* ✅ STATUS HELPERS */
+  const getBesStatus = (bus) => {
+    if (besResults[bus] === "OK") return "green";
+    if (besResults[bus] === "MISSING") return "red";
+    if (Object.keys(besResults).length > 0) return "orange"; // MISSED
+    return "#ccc";
+  };
+
+  const getFleetStatus = (bus) => {
+    const items = fleetResults[bus];
+
+    if (!items) return Object.keys(fleetResults).length > 0 ? "orange" : "#ccc";
+
+    return Object.values(items).every(v => v) ? "green" : "red";
+  };
+
+  /* ✅ DASHBOARD CALCS */
+  const besPercent =
+    Math.round((Object.keys(besResults).length / buses.length) * 100) || 0;
 
   const fleetPercent =
     Math.round(
@@ -71,12 +89,15 @@ export default function App() {
       ).length / buses.length) * 100
     ) || 0;
 
+  const besMissed = buses.filter(b => !besResults[b]).length;
+  const fleetMissed = buses.filter(b => !fleetResults[b]).length;
+
   /* ✅ DOWNLOAD */
   const downloadLog = () => {
     const log = [
-      ["Type", "Bus", "Area", "Date"],
-      ...Object.entries(besResults).map(([bus, status]) => ["BES", bus, status, area]),
-      ...Object.entries(fleetResults).map(([bus, items]) => ["Fleet", bus, JSON.stringify(items), area])
+      ["Type", "Bus", "Area"],
+      ...Object.entries(besResults).map(([bus, status]) => ["BES", bus, status]),
+      ...Object.entries(fleetResults).map(([bus, data]) => ["Fleet", bus, JSON.stringify(data)])
     ];
 
     const csv = log.map(r => r.join(",")).join("\n");
@@ -101,15 +122,6 @@ export default function App() {
     }
   };
 
-  /* ✅ HELPERS */
-  const getBesColor = (status) =>
-    status === "OK" ? "green" : status === "MISSING" ? "red" : "#ccc";
-
-  const getFleetColor = (items) => {
-    if (!items) return "#ccc";
-    return Object.values(items).every(v => v) ? "green" : "red";
-  };
-
   return (
     <div style={{ padding: 20 }}>
       <h1>Safety Compliance System ✅</h1>
@@ -126,12 +138,15 @@ export default function App() {
         <button onClick={() => setTab("ccm")}>CCM</button>
       </div>
 
+      {/* ✅ DASHBOARD */}
       {tab === "dashboard" && (
         <div>
           <h2>Dashboard</h2>
           <div>BES: {besPercent}%</div>
           <div>Fleet: {fleetPercent}%</div>
           <div>CCM: {ccmPercent}%</div>
+          <div>BES Missed: {besMissed}</div>
+          <div>Fleet Missed: {fleetMissed}</div>
         </div>
       )}
 
@@ -151,11 +166,11 @@ export default function App() {
           </button>
 
           <button
+            style={{ marginLeft: 10 }}
             onClick={() => {
               setBesResults(p => ({ ...p, [buses[besIndex]]: "MISSING" }));
               nextBes();
             }}
-            style={{ marginLeft: 10 }}
           >
             Missing ❌
           </button>
@@ -164,7 +179,7 @@ export default function App() {
             {buses.map(b => (
               <div key={b} style={{
                 width: 60,
-                backgroundColor: getBesColor(besResults[b]),
+                backgroundColor: getBesStatus(b),
                 color: "white",
                 textAlign: "center",
                 borderRadius: 6
@@ -207,7 +222,7 @@ export default function App() {
             {buses.map(b => (
               <div key={b} style={{
                 width: 60,
-                backgroundColor: getFleetColor(fleetResults[b]),
+                backgroundColor: getFleetStatus(b),
                 color: "white",
                 textAlign: "center",
                 borderRadius: 6
