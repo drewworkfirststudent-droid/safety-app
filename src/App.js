@@ -14,9 +14,6 @@ export default function App() {
   const buses = area === "Northwest" ? NW_BUSES : SE_BUSES;
   const oosList = area === "Northwest" ? OOS_NW : OOS_SE;
 
-  const BES_KEY = `bes-${area}`;
-  const FLEET_KEY = `fleet-${area}`;
-
   /* BES */
   const [besIndex, setBesIndex] = useState(0);
   const [besChecks, setBesChecks] = useState([]);
@@ -25,28 +22,28 @@ export default function App() {
   const [fleetIndex, setFleetIndex] = useState(0);
   const [fleetChecks, setFleetChecks] = useState([]);
 
-  // ✅ LOAD PER AREA (FIXED)
- useEffect(() => {
-  const savedBES = JSON.parse(localStorage.getItem(`bes-${area}`) || "[]");
-  const savedFleet = JSON.parse(localStorage.getItem(`fleet-${area}`) || "[]");
+  // ✅ LOAD PER AREA
+  useEffect(() => {
+    const savedBES = JSON.parse(localStorage.getItem(`bes-${area}`) || "[]");
+    const savedFleet = JSON.parse(localStorage.getItem(`fleet-${area}`) || "[]");
 
-  setBesChecks(savedBES);
-  setFleetChecks(savedFleet);
-  setBesIndex(0);
-  setFleetIndex(0);
-}, [area]);
+    setBesChecks(savedBES);
+    setFleetChecks(savedFleet);
+    setBesIndex(0);
+    setFleetIndex(0);
+  }, [area]);
 
+  // ✅ SAVE PER AREA
+  useEffect(() => {
+    localStorage.setItem(`bes-${area}`, JSON.stringify(besChecks));
+  }, [besChecks, area]);
 
-  // ✅ SAVE PER AREA (FIXED)
-  
+  useEffect(() => {
+    localStorage.setItem(`fleet-${area}`, JSON.stringify(fleetChecks));
+  }, [fleetChecks, area]);
+
   const nextBes = () => setBesIndex(i => (i + 1) % buses.length);
-useEffect(() => {
-  localStorage.setItem(`bes-${area}`, JSON.stringify(besChecks));
-}, [besChecks, area]);
 
-useEffect(() => {
-  localStorage.setItem(`fleet-${area}`, JSON.stringify(fleetChecks));
-}, [fleetChecks, area]);
   const logBES = () => {
     setBesChecks(prev => [...prev, buses[besIndex]]);
     nextBes();
@@ -94,8 +91,8 @@ useEffect(() => {
   // ✅ DAILY RESET
   const resetDaily = () => {
     if (window.confirm("Reset BES & Fleet for this yard?")) {
-      localStorage.removeItem(BES_KEY);
-      localStorage.removeItem(FLEET_KEY);
+      localStorage.removeItem(`bes-${area}`);
+      localStorage.removeItem(`fleet-${area}`);
 
       setBesChecks([]);
       setFleetChecks([]);
