@@ -2,7 +2,6 @@ import CCM from "./modules/ccm/CCM";
 import { useState, useEffect } from "react";
 import { NW_BUSES, SE_BUSES } from "./buses";
 
-// ✅ OOS lists
 const OOS_NW = ["301", "305"];
 const OOS_SE = ["412", "515"];
 
@@ -12,6 +11,8 @@ export default function App() {
 
   const buses = area === "Northwest" ? NW_BUSES : SE_BUSES;
   const oosList = area === "Northwest" ? OOS_NW : OOS_SE;
+
+  const isTuesday = new Date().getDay() === 2;
 
   /* BES */
   const [besIndex, setBesIndex] = useState(0);
@@ -30,7 +31,6 @@ export default function App() {
     collisionPacket: false
   };
 
-  /* ✅ LOAD */
   useEffect(() => {
     const savedBES = JSON.parse(localStorage.getItem(`bes-${area}`) || "{}");
     const savedFleet = JSON.parse(localStorage.getItem(`fleet-${area}`) || "{}");
@@ -41,7 +41,6 @@ export default function App() {
     setFleetIndex(0);
   }, [area]);
 
-  /* ✅ SAVE */
   useEffect(() => {
     localStorage.setItem(`bes-${area}`, JSON.stringify(besResults));
   }, [besResults, area]);
@@ -53,7 +52,7 @@ export default function App() {
   const nextBes = () => setBesIndex(i => (i + 1) % buses.length);
   const nextFleet = () => setFleetIndex(i => (i + 1) % buses.length);
 
-  /* CCM DASHBOARD */
+  /* CCM */
   const [ccmPercent, setCcmPercent] = useState(0);
 
   useEffect(() => {
@@ -62,37 +61,30 @@ export default function App() {
     setCcmPercent(Math.round((count / buses.length) * 100) || 0);
   }, [tab, buses.length, area]);
 
-  /* ✅ STATUS HELPERS */
+  /* STATUS HELPERS */
   const getBesStatus = (bus) => {
     if (besResults[bus] === "OK") return "green";
     if (besResults[bus] === "MISSING") return "red";
-    if (Object.keys(besResults).length > 0) return "orange"; // MISSED
+    if (Object.keys(besResults).length > 0) return "orange";
     return "#ccc";
   };
 
   const getFleetStatus = (bus) => {
     const items = fleetResults[bus];
-
     if (!items) return Object.keys(fleetResults).length > 0 ? "orange" : "#ccc";
-
     return Object.values(items).every(v => v) ? "green" : "red";
   };
 
-  /* ✅ DASHBOARD CALCS */
-  const besPercent =
-    Math.round((Object.keys(besResults).length / buses.length) * 100) || 0;
-
-  const fleetPercent =
-    Math.round(
-      (Object.keys(fleetResults).filter(
-        b => Object.values(fleetResults[b] || {}).every(v => v)
-      ).length / buses.length) * 100
-    ) || 0;
-
+  /* METRICS */
   const besMissed = buses.filter(b => !besResults[b]).length;
   const fleetMissed = buses.filter(b => !fleetResults[b]).length;
 
-  /* ✅ DOWNLOAD */
+  const besCompliant = besMissed === 0;
+  const fleetCompliant = fleetMissed === 0;
+
+  const systemCompliant = besCompliant && fleetCompliant && ccmPercent === 100;
+
+  /* DOWNLOAD */
   const downloadLog = () => {
     const log = [
       ["Type", "Bus", "Area"],
@@ -142,97 +134,102 @@ export default function App() {
       {tab === "dashboard" && (
         <div>
           <h2>Dashboard</h2>
-          <div>BES: {besPercent}%</div>
-          <div>Fleet: {fleetPercent}%</div>
-          <div>CCM: {ccmPercent}%</div>
+
+          {isTuesday && (
+            <div style={{ fontWeight: "bold", marginBottom: 10 }}>
+              {systemCompliant ? (
+                <span style={{ color: "green" }}>
+                  ✅ COMPLIANT — All buses verified
+                </span>
+              ) : (
+                <span style={{ color: "red" }}>
+                  🚨 NON-COMPLIANT — Action required
+                </span>
+              )}
+            </div>
+          )}
+
           <div>BES Missed: {besMissed}</div>
           <div>Fleet Missed: {fleetMissed}</div>
+          <div>CCM: {ccmPercent}%</div>
         </div>
       )}
 
-      {/* ✅ BES */}
+      {/* BES */}
       {tab === "bes" && (
         <div>
           <h2>{area} BES</h2>
           <div>Bus: {buses[besIndex]}</div>
 
-          <button
-            onClick={() => {
-              setBesResults(p => ({ ...p, [buses[besIndex]]: "OK" }));
-              nextBes();
-            }}
-          >
-            Tag ✅
-          </button>
+          <button onClick={() => {
+            setBesResults(p => ({ ...p, [buses[besIndex]]: "OK" }));
+            nextBes();
+          }}>Tag ✅</button>
 
-          <button
-            style={{ marginLeft: 10 }}
-            onClick={() => {
-              setBesResults(p => ({ ...p, [buses[besIndex]]: "MISSING" }));
-              nextBes();
-            }}
-          >
+          <button onClick={() => {
+            setBesResults(p => ({ ...p, [buses[besIndex]]: "MISSING" }));
+            nextBes();
+          }} style={{ marginLeft: 10 }}>
             Missing ❌
           </button>
 
-          <div style={{ marginTop: 20, display: "flex", flexWrap: "wrap", gap: 6 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", marginTop: 20 }}>
             {buses.map(b => (
               <div key={b} style={{
                 width: 60,
                 backgroundColor: getBesStatus(b),
                 color: "white",
-                textAlign: "center",
-                borderRadius: 6
+                margin: 4,
+                textAlign: "center"
               }}>{b}</div>
             ))}
           </div>
         </div>
       )}
 
-      {/* ✅ FLEET */}
+      {/* FLEET */}
       {tab === "fleet" && (
         <div>
           <h2>{area} Fleet</h2>
           <div>Bus: {buses[fleetIndex]}</div>
 
-          {Object.keys(fleetTemplate).map(key => (
-            <div key={key}>
+          {Object.keys(fleetTemplate).map(k => (
+            <div key={k}>
               <label>
                 <input
                   type="checkbox"
-                  checked={fleetResults[buses[fleetIndex]]?.[key] || false}
+                  checked={fleetResults[buses[fleetIndex]]?.[k] || false}
                   onChange={(e) => {
-                    setFleetResults(prev => ({
-                      ...prev,
+                    setFleetResults(p => ({
+                      ...p,
                       [buses[fleetIndex]]: {
-                        ...(prev[buses[fleetIndex]] || fleetTemplate),
-                        [key]: e.target.checked
+                        ...(p[buses[fleetIndex]] || fleetTemplate),
+                        [k]: e.target.checked
                       }
                     }));
                   }}
                 />
-                {key}
+                {k}
               </label>
             </div>
           ))}
 
           <button onClick={nextFleet}>Next Bus</button>
 
-          <div style={{ marginTop: 20, display: "flex", flexWrap: "wrap", gap: 6 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", marginTop: 20 }}>
             {buses.map(b => (
               <div key={b} style={{
                 width: 60,
                 backgroundColor: getFleetStatus(b),
                 color: "white",
-                textAlign: "center",
-                borderRadius: 6
+                margin: 4,
+                textAlign: "center"
               }}>{b}</div>
             ))}
           </div>
         </div>
       )}
 
-      {/* ✅ CCM */}
       {tab === "ccm" && (
         <CCM buses={buses} area={area} oosList={oosList} />
       )}
