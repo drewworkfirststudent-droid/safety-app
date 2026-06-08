@@ -42,6 +42,15 @@ function CCM() {
     }
   };
 
+  // ✅ Reset function
+  const handleReset = () => {
+    if (window.confirm("Reset all CCM progress?")) {
+      localStorage.removeItem(STORAGE_KEY);
+      setIndex(0);
+      setResults({});
+    }
+  };
+
   // ✅ Color helper
   const getColor = (status) => {
     if (status === "WORKING") return "green";
@@ -53,6 +62,26 @@ function CCM() {
   return (
     <div style={{ padding: "20px" }}>
       <h2>Child Checkmate Verification</h2>
+
+      {/* ✅ Resume banner */}
+      {index > 0 && (
+        <div style={{ marginBottom: "15px", fontWeight: "bold" }}>
+          Resuming at Bus {currentBus}
+        </div>
+      )}
+
+      {/* ✅ Reset button */}
+      <button
+        onClick={handleReset}
+        style={{
+          marginBottom: "15px",
+          backgroundColor: "black",
+          color: "white",
+          padding: "6px 10px",
+        }}
+      >
+        Reset Week
+      </button>
 
       {/* ✅ Current Bus Card */}
       <div
