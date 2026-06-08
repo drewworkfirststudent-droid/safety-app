@@ -26,27 +26,27 @@ export default function App() {
   const [fleetChecks, setFleetChecks] = useState([]);
 
   // ✅ LOAD PER AREA (FIXED)
-  useEffect(() => {
-    const savedBES = JSON.parse(localStorage.getItem(BES_KEY) || "[]");
-    const savedFleet = JSON.parse(localStorage.getItem(FLEET_KEY) || "[]");
+ useEffect(() => {
+  const savedBES = JSON.parse(localStorage.getItem(`bes-${area}`) || "[]");
+  const savedFleet = JSON.parse(localStorage.getItem(`fleet-${area}`) || "[]");
 
-    setBesChecks(savedBES);
-    setFleetChecks(savedFleet);
-    setBesIndex(0);
-    setFleetIndex(0);
-  }, [area]);
+  setBesChecks(savedBES);
+  setFleetChecks(savedFleet);
+  setBesIndex(0);
+  setFleetIndex(0);
+}, [area]);
+
 
   // ✅ SAVE PER AREA (FIXED)
-  useEffect(() => {
-    localStorage.setItem(BES_KEY, JSON.stringify(besChecks));
-  }, [besChecks, area]);
-
-  useEffect(() => {
-    localStorage.setItem(FLEET_KEY, JSON.stringify(fleetChecks));
-  }, [fleetChecks, area]);
-
+  
   const nextBes = () => setBesIndex(i => (i + 1) % buses.length);
+useEffect(() => {
+  localStorage.setItem(`bes-${area}`, JSON.stringify(besChecks));
+}, [besChecks, area]);
 
+useEffect(() => {
+  localStorage.setItem(`fleet-${area}`, JSON.stringify(fleetChecks));
+}, [fleetChecks, area]);
   const logBES = () => {
     setBesChecks(prev => [...prev, buses[besIndex]]);
     nextBes();
