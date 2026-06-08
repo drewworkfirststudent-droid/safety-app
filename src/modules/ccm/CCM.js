@@ -1,5 +1,6 @@
 import { useState } from "react";
-import buses from "../../buses";
+import { NW_BUSES } from "../../buses";
+const buses = NW_BUSES;
 
 function CCM() {
   const [index, setIndex] = useState(0);
