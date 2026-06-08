@@ -1,11 +1,34 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { NW_BUSES } from "../../buses";
+
+const STORAGE_KEY = "ccm-progress";
 
 const buses = NW_BUSES;
 
 function CCM() {
   const [index, setIndex] = useState(0);
-  const [, setResults] = useState({}); // ✅ removes unused var error
+  const [results, setResults] = useState({});
+
+  // ✅ LOAD saved data on startup
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      setIndex(parsed.index || 0);
+      setResults(parsed.results || {});
+    }
+  }, []);
+
+  // ✅ SAVE whenever data changes
+  useEffect(() => {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        index,
+        results,
+      })
+    );
+  }, [index, results]);
 
   const currentBus = buses[index];
 
