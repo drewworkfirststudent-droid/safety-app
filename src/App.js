@@ -2,16 +2,9 @@ import CCM from "./modules/ccm/CCM";
 import { useState, useEffect } from "react";
 import { NW_BUSES, SE_BUSES } from "./buses";
 
-// ✅ Sample drivers (replace later with roster import)
-const DRIVERS = [
-  "Smith",
-  "Johnson",
-  "Williams",
-  "Brown",
-  "Jones"
-];
+// ✅ Sample drivers
+const DRIVERS = ["Smith", "Johnson", "Williams", "Brown", "Jones"];
 
-// ✅ OOS lists
 const OOS_NW = ["301", "305"];
 const OOS_SE = ["412", "515"];
 
@@ -25,15 +18,12 @@ export default function App() {
   const today = new Date().getDay();
   const isFriday = today === 5;
 
-  /* DRIVER TRACKING */
   const [busDrivers, setBusDrivers] = useState({});
   const [currentDriver, setCurrentDriver] = useState("");
 
-  /* BES */
   const [besIndex, setBesIndex] = useState(0);
   const [besResults, setBesResults] = useState({});
 
-  /* FLEET */
   const [fleetIndex, setFleetIndex] = useState(0);
   const [fleetResults, setFleetResults] = useState({});
 
@@ -69,49 +59,6 @@ export default function App() {
   const nextBes = () => setBesIndex(i => (i + 1) % buses.length);
   const nextFleet = () => setFleetIndex(i => (i + 1) % buses.length);
 
-  // ✅ CSV EXPORT RESTORE
-const downloadCSV = (type) => {
-  let rows = [["Bus", "Data"]];
-
-  if (type === "BES") {
-    rows = [
-      ["Bus", "Status"],
-      ...Object.entries(besResults)
-    ];
-  }
-
-  if (type === "Fleet") {
-    rows = [
-      ["Bus", "Checklist"],
-      ...Object.entries(fleetResults).map(([bus, data]) => [
-        bus,
-        JSON.stringify(data)
-      ])
-    ];
-  }
-
-  if (type === "CCM") {
-    const saved = JSON.parse(
-      localStorage.getItem(`ccm-progress-${area}`) || "{}"
-    );
-
-    rows = [
-      ["Bus", "Status"],
-      ...Object.entries(saved.results || {})
-    ];
-  }
-
-  const csv = rows.map(r => r.join(",")).join("\n");
-
-  const blob = new Blob([csv], { type: "text/csv" });
-  const url = URL.createObjectURL(blob);
-
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `${type}-${area}.csv`;
-  a.click();
-};
-  
   const assignDriver = (bus) => {
     if (!currentDriver) return;
     setBusDrivers(prev => ({ ...prev, [bus]: currentDriver }));
@@ -134,23 +81,53 @@ const downloadCSV = (type) => {
   /* MISSED */
   const missedBES = buses.filter(b => !besResults[b]);
   const missedFleet = buses.filter(b => !fleetResults[b]);
-
   const missedCombined = [...new Set([...missedBES, ...missedFleet])];
 
-  // ✅ PERCENT CALCULATIONS (RESTORED)
-const besCompleted = Object.keys(besResults).length;
+  /* ✅ PERCENT FIX */
+  const besPercent = Math.round(
+    (Object.keys(besResults).length / buses.length) * 100
+  ) || 0;
 
-const fleetCompleted = Object.keys(fleetResults).filter(
-  bus => Object.values(fleetResults[bus] || {}).length > 0
-).length;
+  const fleetPercent = Math.round(
+    (Object.keys(fleetResults).length / buses.length) * 100
+  ) || 0;
 
-const besPercent = Math.round((besCompleted / buses.length) * 100) || 0;
-const fleetPercent = Math.round((fleetCompleted / buses.length) * 100) || 0;
+  const savedCCM = JSON.parse(localStorage.getItem(`ccm-progress-${area}`) || "{}");
+  const ccmPercent = Math.round(
+    (Object.keys(savedCCM.results || {}).length / buses.length) * 100
+  ) || 0;
 
-const savedCCM = JSON.parse(localStorage.getItem(`ccm-progress-${area}`) || "{}");
-const ccmPercent = Math.round(
-  (Object.keys(savedCCM.results || {}).length / buses.length) * 100
-) || 0;
+  /* ✅ CSV EXPORT */
+  const downloadCSV = (type) => {
+    let rows = [["Bus", "Data"]];
+
+    if (type === "BES") {
+      rows = [["Bus", "Status"], ...Object.entries(besResults)];
+    }
+
+    if (type === "Fleet") {
+      rows = [
+        ["Bus", "Checklist"],
+        ...Object.entries(fleetResults).map(([b, d]) => [b, JSON.stringify(d)])
+      ];
+    }
+
+    if (type === "CCM") {
+      rows = [
+        ["Bus", "Status"],
+        ...Object.entries(savedCCM.results || {})
+      ];
+    }
+
+    const csv = rows.map(r => r.join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${type}-${area}.csv`;
+    a.click();
+  };
 
   return (
     <div style={{ padding: 20 }}>
@@ -166,40 +143,9 @@ const ccmPercent = Math.round(
         <button onClick={() => setTab("bes")}>BES</button>
         <button onClick={() => setTab("fleet")}>Fleet</button>
         <button onClick={() => setTab("ccm")}>CCM</button>
-
-    <button onClick={() => downloadCSV("BES")}>
-  Download BES
-</button>
-
-<button
-  onClick={() => downloadCSV("Fleet")}
-  style={{ marginLeft: 10 }}
->
-  Download Fleet
-</button>
-
-<button
-  onClick={() => downloadCSV("CCM")}
-  style={{ marginLeft: 10 }}
->
-  Download CCM
-</button>
-    style={{ marginLeft: 10 }}
-  >
-    Download Fleet
-  </button>
-
-  <button
-    onClick={() => downloadCSV("CCM")}
-    style={{ marginLeft: 10 }}
-  >
-    Download CCM
-  </button>
-</div>
-      
       </div>
-      
-      {/* ✅ DRIVER SELECT */}
+
+      {/* DRIVER */}
       <div style={{ marginTop: 10 }}>
         Driver:
         <select value={currentDriver} onChange={(e) => setCurrentDriver(e.target.value)}>
@@ -208,16 +154,23 @@ const ccmPercent = Math.round(
         </select>
       </div>
 
-      {/* ✅ DASHBOARD */}
-{tab === "dashboard" && (
-  <div>
-    <h2>Dashboard</h2>
+      {/* DASHBOARD */}
+      {tab === "dashboard" && (
+        <div>
+          <h2>Dashboard</h2>
 
           {isFriday && (
             <div style={{ color: "red", fontWeight: "bold" }}>
               🚨 FINAL COMPLIANCE REVIEW
             </div>
           )}
+
+          <div>BES: {besPercent}%</div>
+          <div>Fleet: {fleetPercent}%</div>
+          <div>CCM: {ccmPercent}%</div>
+
+          <div>BES Missed: {missedBES.length}</div>
+          <div>Fleet Missed: {missedFleet.length}</div>
 
           <h3>Missed Buses</h3>
           {missedCombined.length === 0 ? (
@@ -232,7 +185,7 @@ const ccmPercent = Math.round(
         </div>
       )}
 
-      {/* ✅ BES */}
+      {/* BES */}
       {tab === "bes" && (
         <div>
           <h2>{area} BES</h2>
@@ -253,22 +206,10 @@ const ccmPercent = Math.round(
           }} style={{ marginLeft: 10 }}>
             Missing ❌
           </button>
-
-          <div style={{ display: "flex", flexWrap: "wrap", marginTop: 10 }}>
-            {buses.map(b => (
-              <div key={b} style={{
-                width: 60,
-                backgroundColor: getBesStatus(b),
-                color: "white",
-                margin: 4,
-                textAlign: "center"
-              }}>{b}</div>
-            ))}
-          </div>
         </div>
       )}
 
-      {/* ✅ FLEET */}
+      {/* FLEET */}
       {tab === "fleet" && (
         <div>
           <h2>{area} Fleet</h2>
@@ -297,50 +238,27 @@ const ccmPercent = Math.round(
           ))}
 
           <button onClick={nextFleet}>Next Bus</button>
-
-          <div style={{ display: "flex", flexWrap: "wrap", marginTop: 10 }}>
-            {buses.map(b => (
-              <div key={b} style={{
-                width: 60,
-                backgroundColor: getFleetStatus(b),
-                color: "white",
-                margin: 4,
-                textAlign: "center"
-              }}>{b}</div>
-            ))}
-          </div>
         </div>
       )}
 
-   {tab === "ccm" && (
-  <div>
-    <CCM buses={buses} area={area} oosList={oosList} />
-  </div>
-)}
+      {/* CCM */}
+      {tab === "ccm" && (
+        <div>
+          <CCM buses={buses} area={area} oosList={oosList} />
+        </div>
+      )}
 
-<hr style={{ marginTop: 20 }} />
-
-<div>
-  <button onClick={() => downloadCSV("BES")}>
-    Download BES
-  </button>
-
-  <button
-    onClick={() => downloadCSV("Fleet")}
-    style={{ marginLeft: 10 }}
-  >
-    Download Fleet
-  </button>
-
-  <button
-    onClick={() => downloadCSV("CCM")}
-    style={{ marginLeft: 10 }}
-  >
-    Download CCM
-  </button>
-</div>
-
-</div>
-);
+      {/* ✅ DOWNLOADS */}
+      <hr style={{ marginTop: 20 }} />
+      <div>
+        <button onClick={() => downloadCSV("BES")}>Download BES</button>
+        <button onClick={() => downloadCSV("Fleet")} style={{ marginLeft: 10 }}>
+          Download Fleet
+        </button>
+        <button onClick={() => downloadCSV("CCM")} style={{ marginLeft: 10 }}>
+          Download CCM
+        </button>
+      </div>
+    </div>
+  );
 }
-   
