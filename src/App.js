@@ -69,6 +69,49 @@ export default function App() {
   const nextBes = () => setBesIndex(i => (i + 1) % buses.length);
   const nextFleet = () => setFleetIndex(i => (i + 1) % buses.length);
 
+  // ✅ CSV EXPORT RESTORE
+const downloadCSV = (type) => {
+  let rows = [["Bus", "Data"]];
+
+  if (type === "BES") {
+    rows = [
+      ["Bus", "Status"],
+      ...Object.entries(besResults)
+    ];
+  }
+
+  if (type === "Fleet") {
+    rows = [
+      ["Bus", "Checklist"],
+      ...Object.entries(fleetResults).map(([bus, data]) => [
+        bus,
+        JSON.stringify(data)
+      ])
+    ];
+  }
+
+  if (type === "CCM") {
+    const saved = JSON.parse(
+      localStorage.getItem(`ccm-progress-${area}`) || "{}"
+    );
+
+    rows = [
+      ["Bus", "Status"],
+      ...Object.entries(saved.results || {})
+    ];
+  }
+
+  const csv = rows.map(r => r.join(",")).join("\n");
+
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${type}-${area}.csv`;
+  a.click();
+};
+  
   const assignDriver = (bus) => {
     if (!currentDriver) return;
     setBusDrivers(prev => ({ ...prev, [bus]: currentDriver }));
@@ -108,8 +151,45 @@ export default function App() {
         <button onClick={() => setTab("bes")}>BES</button>
         <button onClick={() => setTab("fleet")}>Fleet</button>
         <button onClick={() => setTab("ccm")}>CCM</button>
-      </div>
 
+  <hr style={{ marginTop: 20 }} />
+
+<div>
+  <button onClick={() => downloadCSV("BES")}>
+    Download BES
+  </button>
+
+  <button
+    onClick={() => downloadCSV("Fleet")}
+    style={{ marginLeft: 10 }}
+  >
+    Download Fleet
+  </button>
+
+  <button
+    onClick={() => downloadCSV("CCM")}
+    style={{ marginLeft: 10 }}
+  >
+    Download CCM
+  </button>
+</div>
+      
+      </div>
+      // ✅ PERCENT CALCULATIONS (RESTORED)
+const besCompleted = Object.keys(besResults).length;
+
+const fleetCompleted = Object.keys(fleetResults).filter(
+  bus => Object.values(fleetResults[bus] || {}).length > 0
+).length;
+
+const besPercent = Math.round((besCompleted / buses.length) * 100) || 0;
+const fleetPercent = Math.round((fleetCompleted / buses.length) * 100) || 0;
+
+// ✅ CCM percent (same logic you used earlier)
+const savedCCM = JSON.parse(localStorage.getItem(`ccm-progress-${area}`) || "{}");
+const ccmPercent = Math.round(
+  (Object.keys(savedCCM.results || {}).length / buses.length) * 100
+) || 0;
       {/* ✅ DRIVER SELECT */}
       <div style={{ marginTop: 10 }}>
         Driver:
@@ -120,9 +200,36 @@ export default function App() {
       </div>
 
       {/* ✅ DASHBOARD */}
-      {tab === "dashboard" && (
-        <div>
-          <h2>Dashboard</h2>
+{tab === "dashboard" && (
+  <div>
+    <h2>Dashboard</h2>
+
+    {isFriday && (
+      <div style={{ color: "red", fontWeight: "bold" }}>
+        🚨 FINAL COMPLIANCE REVIEW
+      </div>
+    )}
+
+    <div>BES: {besPercent}%</div>
+    <div>Fleet: {fleetPercent}%</div>
+    <div>CCM: {ccmPercent}%</div>
+
+    <div>BES Missed: {missedBES.length}</div>
+    <div>Fleet Missed: {missedFleet.length}</div>
+
+    <h3 style={{ marginTop: 10 }}>Missed Buses</h3>
+
+    {missedCombined.length === 0 ? (
+      <div>✅ None</div>
+    ) : (
+      missedCombined.map(bus => (
+        <div key={bus}>
+          Bus {bus} — Driver: {busDrivers[bus] || "UNKNOWN"}
+        </div>
+      ))
+    )}
+  </div>
+)}
 
           {isFriday && (
             <div style={{ color: "red", fontWeight: "bold" }}>
