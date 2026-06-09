@@ -83,14 +83,9 @@ export default function App() {
   const missedFleet = buses.filter(b => !fleetResults[b]);
   const missedCombined = [...new Set([...missedBES, ...missedFleet])];
 
-  /* ✅ PERCENT FIX */
-  const besPercent = Math.round(
-    (Object.keys(besResults).length / buses.length) * 100
-  ) || 0;
-
-  const fleetPercent = Math.round(
-    (Object.keys(fleetResults).length / buses.length) * 100
-  ) || 0;
+  /* ✅ PERCENT */
+  const besPercent = Math.round((Object.keys(besResults).length / buses.length) * 100) || 0;
+  const fleetPercent = Math.round((Object.keys(fleetResults).length / buses.length) * 100) || 0;
 
   const savedCCM = JSON.parse(localStorage.getItem(`ccm-progress-${area}`) || "{}");
   const ccmPercent = Math.round(
@@ -138,6 +133,7 @@ export default function App() {
         <option>Southeast</option>
       </select>
 
+      {/* NAV */}
       <div>
         <button onClick={() => setTab("dashboard")}>Dashboard</button>
         <button onClick={() => setTab("bes")}>BES</button>
@@ -173,15 +169,11 @@ export default function App() {
           <div>Fleet Missed: {missedFleet.length}</div>
 
           <h3>Missed Buses</h3>
-          {missedCombined.length === 0 ? (
-            <div>✅ None</div>
-          ) : (
-            missedCombined.map(bus => (
-              <div key={bus}>
-                Bus {bus} — Driver: {busDrivers[bus] || "UNKNOWN"}
-              </div>
-            ))
-          )}
+          {missedCombined.map(bus => (
+            <div key={bus}>
+              Bus {bus} — Driver: {busDrivers[bus] || "UNKNOWN"}
+            </div>
+          ))}
         </div>
       )}
 
@@ -195,9 +187,7 @@ export default function App() {
             assignDriver(buses[besIndex]);
             setBesResults(p => ({ ...p, [buses[besIndex]]: "OK" }));
             nextBes();
-          }}>
-            Tag ✅
-          </button>
+          }}>Tag ✅</button>
 
           <button onClick={() => {
             assignDriver(buses[besIndex]);
@@ -236,8 +226,6 @@ export default function App() {
               </label>
             </div>
           ))}
-
-          <button onClick={nextFleet}>Next Bus</button>
         </div>
       )}
 
@@ -248,8 +236,9 @@ export default function App() {
         </div>
       )}
 
-      {/* ✅ DOWNLOADS */}
+      {/* DOWNLOAD */}
       <hr style={{ marginTop: 20 }} />
+
       <div>
         <button onClick={() => downloadCSV("BES")}>Download BES</button>
         <button onClick={() => downloadCSV("Fleet")} style={{ marginLeft: 10 }}>
@@ -259,6 +248,7 @@ export default function App() {
           Download CCM
         </button>
       </div>
+
     </div>
   );
 }
