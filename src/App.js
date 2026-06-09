@@ -1,6 +1,4 @@
-import CCM from "./modules/ccm/CCM";
-import { useState, useEffect } from "react";
-import { NW_BUSES, SE_BUSES } from "./buses";
+import CCM from "./modules/ccm/CCM";import CCM from "./modules/ccmSES, SE_BUSES } from "./buses";
 
 // ✅ Sample drivers
 const DRIVERS = ["Smith", "Johnson", "Williams", "Brown", "Jones"];
@@ -24,7 +22,7 @@ export default function App() {
   const [besIndex, setBesIndex] = useState(0);
   const [besResults, setBesResults] = useState({});
 
-  const [fleetIndex, setFleetIndex] = useState(0);
+  const [fleetIndex] = useState(0);
   const [fleetResults, setFleetResults] = useState({});
 
   const fleetTemplate = {
@@ -63,28 +61,19 @@ export default function App() {
     setBusDrivers(prev => ({ ...prev, [bus]: currentDriver }));
   };
 
-  /* STATUS */
-  const getBesStatus = (bus) => {
-    if (besResults[bus] === "OK") return "green";
-    if (besResults[bus] === "MISSING") return "red";
-    if (Object.keys(besResults).length > 0) return "orange";
-    return "#ccc";
-  };
-
-  const getFleetStatus = (bus) => {
-    const items = fleetResults[bus];
-    if (!items) return Object.keys(fleetResults).length > 0 ? "orange" : "#ccc";
-    return Object.values(items).every(v => v) ? "green" : "red";
-  };
-
   /* MISSED */
   const missedBES = buses.filter(b => !besResults[b]);
   const missedFleet = buses.filter(b => !fleetResults[b]);
   const missedCombined = [...new Set([...missedBES, ...missedFleet])];
 
   /* ✅ PERCENT */
-  const besPercent = Math.round((Object.keys(besResults).length / buses.length) * 100) || 0;
-  const fleetPercent = Math.round((Object.keys(fleetResults).length / buses.length) * 100) || 0;
+  const besPercent = Math.round(
+    (Object.keys(besResults).length / buses.length) * 100
+  ) || 0;
+
+  const fleetPercent = Math.round(
+    (Object.keys(fleetResults).length / buses.length) * 100
+  ) || 0;
 
   const savedCCM = JSON.parse(localStorage.getItem(`ccm-progress-${area}`) || "{}");
   const ccmPercent = Math.round(
@@ -168,11 +157,15 @@ export default function App() {
           <div>Fleet Missed: {missedFleet.length}</div>
 
           <h3>Missed Buses</h3>
-          {missedCombined.map(bus => (
-            <div key={bus}>
-              Bus {bus} — Driver: {busDrivers[bus] || "UNKNOWN"}
-            </div>
-          ))}
+          {missedCombined.length === 0 ? (
+            <div>✅ None</div>
+          ) : (
+            missedCombined.map(bus => (
+              <div key={bus}>
+                Bus {bus} — Driver: {busDrivers[bus] || "UNKNOWN"}
+              </div>
+            ))
+          )}
         </div>
       )}
 
@@ -186,7 +179,9 @@ export default function App() {
             assignDriver(buses[besIndex]);
             setBesResults(p => ({ ...p, [buses[besIndex]]: "OK" }));
             nextBes();
-          }}>Tag ✅</button>
+          }}>
+            Tag ✅
+          </button>
 
           <button onClick={() => {
             assignDriver(buses[besIndex]);
@@ -247,7 +242,7 @@ export default function App() {
           Download CCM
         </button>
       </div>
-
     </div>
   );
 }
+import { useState, useEffect } from "react";
