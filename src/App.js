@@ -7,6 +7,13 @@ const DRIVERS = ["Smith", "Johnson", "Williams", "Brown", "Jones"];
 const OOS_NW = ["301", "305"];
 const OOS_SE = ["412", "515"];
 
+const STATUS = {
+  NOT_STARTED: "NOT_STARTED",
+  IN_PROGRESS: "IN_PROGRESS",
+  COMPLETE: "COMPLETE",
+  FAILED: "FAILED"
+};
+
 export default function App() {
   const [tab, setTab] = useState("dashboard");
   const [area, setArea] = useState("Northwest");
@@ -20,11 +27,13 @@ export default function App() {
   const [busDrivers, setBusDrivers] = useState({});
   const [currentDriver, setCurrentDriver] = useState("");
 
-  const [besIndex, setBesIndex] = useState(0);
+  // ✅ SEPARATED SELECTION STATE
+  const [selectedBesBus, setSelectedBesBus] = useState(null);
+  const [selectedFleetBus, setSelectedFleetBus] = useState(null);
+  const [selectedMonthlyBus, setSelectedMonthlyBus] = useState(null);
   const [besResults, setBesResults] = useState({});
-
-  const [fleetIndex] = useState(0);
   const [fleetResults, setFleetResults] = useState({});
+  const [monthlyResults, setMonthlyResults] = useState({});
 
   const fleetTemplate = {
     extinguisher: false,
@@ -35,14 +44,19 @@ export default function App() {
     collisionPacket: false
   };
 
-  /* LOAD */
+  const monthlyTemplate = {
+    extinguisher: false,
+    tagValid: false,
+    coAlarm: false
+  };
+
   useEffect(() => {
     setBusDrivers(JSON.parse(localStorage.getItem(`drivers-${area}`) || "{}"));
     setBesResults(JSON.parse(localStorage.getItem(`bes-${area}`) || "{}"));
     setFleetResults(JSON.parse(localStorage.getItem(`fleet-${area}`) || "{}"));
+    setMonthlyResults(JSON.parse(localStorage.getItem(`monthly-${area}`) || "{}"));
   }, [area]);
 
-  /* SAVE */
   useEffect(() => {
     localStorage.setItem(`drivers-${area}`, JSON.stringify(busDrivers));
   }, [busDrivers, area]);
@@ -55,60 +69,46 @@ export default function App() {
     localStorage.setItem(`fleet-${area}`, JSON.stringify(fleetResults));
   }, [fleetResults, area]);
 
-  const nextBes = () => setBesIndex(i => (i + 1) % buses.length);
+  useEffect(() => {
+    localStorage.setItem(`monthly-${area}`, JSON.stringify(monthlyResults));
+  }, [monthlyResults, area]);
 
-  /* ✅ FIXED DRIVER LINK */
   const assignDriver = (bus) => {
     if (!currentDriver) return;
     setBusDrivers(prev => ({ ...prev, [bus]: currentDriver }));
   };
 
-  /* MISSED */
-  const missedBES = buses.filter(b => !besResults[b]);
-  const missedFleet = buses.filter(b => !fleetResults[b]);
-  const missedCombined = [...new Set([...missedBES, ...missedFleet])];
+  const getColor = (status) => {
+    if (status === STATUS.COMPLETE) return "green";
+    if (status === STATUS.FAILED) return "red";
+    if (status === STATUS.IN_PROGRESS) return "orange";
+    return "gray";
+  };
 
-  /* ✅ PERCENT */
-  const besPercent = Math.round((Object.keys(besResults).length / buses.length) * 100) || 0;
+  // ✅ FRIDAY VIOLATIONS
+  const violations = buses.filter(b => {
+    const besOk = besResults[b]?.status;
+    const fleetOk = fleetResults[b]?.status === STATUS.COMPLETE;
 
-  const fleetPercent = Math.round((Object.keys(fleetResults).length / buses.length) * 100) || 0;
 
-  const savedCCM = JSON.parse(localStorage.getItem(`ccm-progress-${area}`) || "{}");
-  const ccmPercent = Math.round(
-    (Object.keys(savedCCM.results || {}).length / buses.length) * 100
+    return isFriday && (!besOk || !fleetOk);
+  });
+
+
+  const besPercent = Math.round(
+    (Object.values(besResults).filter(v => v?.status).length / buses.length) * 100
   ) || 0;
 
-  /* ✅ CSV EXPORT */
-  const downloadCSV = (type) => {
-    let rows = [["Bus", "Data"]];
+  const fleetPercent = Math.round(
+    (Object.values(fleetResults).filter(v => v?.status === STATUS.COMPLETE).length / buses.length) * 100
+  ) || 0;
 
-    if (type === "BES") {
-      rows = [["Bus", "Status"], ...Object.entries(besResults)];
-    }
+  const monthlyPercent = Math.round(
+    (Object.values(monthlyResults).filter(v => v?.status === STATUS.COMPLETE).length / buses.length) * 100
+  ) || 0;
 
-    if (type === "Fleet") {
-      rows = [
-        ["Bus", "Checklist"],
-        ...Object.entries(fleetResults).map(([b, d]) => [b, JSON.stringify(d)])
-      ];
-    }
-
-    if (type === "CCM") {
-      rows = [
-        ["Bus", "Status"],
-        ...Object.entries(savedCCM.results || {})
-      ];
-    }
-
-    const csv = rows.map(r => r.join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${type}-${area}.csv`;
-    a.click();
-  };
+  const savedCCM = JSON.parse(localStorage.getItem(`ccm-progress-${area}`) || "{}");
+  const ccmPercent = Math.round((Object.keys(savedCCM.results || {}).length / buses.length) * 100) || 0;
 
   return (
     <div style={{ padding: 20 }}>
@@ -119,15 +119,14 @@ export default function App() {
         <option>Southeast</option>
       </select>
 
-      {/* NAV */}
       <div>
         <button onClick={() => setTab("dashboard")}>Dashboard</button>
         <button onClick={() => setTab("bes")}>BES</button>
         <button onClick={() => setTab("fleet")}>Fleet</button>
+        <button onClick={() => setTab("monthly")}>Monthly</button>
         <button onClick={() => setTab("ccm")}>CCM</button>
       </div>
 
-      {/* DRIVER */}
       <div style={{ marginTop: 10 }}>
         Driver:
         <select value={currentDriver} onChange={(e) => setCurrentDriver(e.target.value)}>
@@ -136,111 +135,211 @@ export default function App() {
         </select>
       </div>
 
-      {/* DASHBOARD */}
       {tab === "dashboard" && (
         <div>
           <h2>Dashboard</h2>
 
-          {isFriday && (
-            <div style={{ color: "red", fontWeight: "bold" }}>
-              🚨 FINAL COMPLIANCE REVIEW
-            </div>
-          )}
+          {isFriday && (
+            <div style={{ color: "red", fontWeight: "bold" }}>
+              🚨 FINAL COMPLIANCE REVIEW
+            </div>
+          )}
+
 
           <div>BES: {besPercent}%</div>
           <div>Fleet: {fleetPercent}%</div>
+          <div>Monthly: {monthlyPercent}%</div>
           <div>CCM: {ccmPercent}%</div>
 
-          <div>BES Missed: {missedBES.length}</div>
-          <div>Fleet Missed: {missedFleet.length}</div>
-
-          <h3>Missed Buses</h3>
-          {missedCombined.length === 0 ? (
+          <h3>🚨 Violations</h3>
+          {violations.length === 0 ? (
             <div>✅ None</div>
           ) : (
-            missedCombined.map(bus => (
-              <div key={bus}>
-                Bus {bus} — Driver: {busDrivers[bus] || "UNKNOWN"}
-              </div>
-            ))
+            violations.map(b => (
+              <div key={b} style={{ color: "red" }}>
+                Bus {b} — Driver: {busDrivers[b] || "UNKNOWN"}
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+      {tab === "bes" && (
+        <div>
+          <h2>BES Grid</h2>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 10 }}>
+            {buses.map(bus => {
+              const data = besResults[bus];
+              return (
+                <div
+                  key={bus}
+                  onClick={() => setSelectedBesBus(bus)}
+                  style={{
+                    padding: 10,
+                    background: getColor(data?.status),
+                    color: "white",
+                    cursor: "pointer",
+                    borderRadius: 6,
+                    textAlign: "center"
+                  }}
+                >
+                  {bus}
+                </div>
+              );
+            })}
+          </div>
+
+          {selectedBesBus && (
+            <div>
+              <h3>Bus {selectedBesBus}</h3>
+              <button onClick={() => {
+                assignDriver(selectedBesBus);
+                setBesResults(p => ({
+                  ...p,
+                  [selectedBesBus]: { status: STATUS.COMPLETE }
+                }));
+              }}>Tag ✅</button>
+
+              <button onClick={() => {
+                assignDriver(selectedBesBus);
+                setBesResults(p => ({
+                  ...p,
+                  [selectedBesBus]: { status: STATUS.FAILED }
+                }));
+              }}>Missing ❌</button>
+            </div>
           )}
         </div>
       )}
 
-      {/* BES */}
-      {tab === "bes" && (
-        <div>
-          <h2>{area} BES</h2>
-          <div>Bus: {buses[besIndex]}</div>
-
-          <button onClick={() => {
-            assignDriver(buses[besIndex]);
-            setBesResults(p => ({ ...p, [buses[besIndex]]: "OK" }));
-            nextBes();
-          }}>
-            Tag ✅
-          </button>
-
-          <button onClick={() => {
-            assignDriver(buses[besIndex]);
-            setBesResults(p => ({ ...p, [buses[besIndex]]: "MISSING" }));
-            nextBes();
-          }} style={{ marginLeft: 10 }}>
-            Missing ❌
-          </button>
-        </div>
-      )}
-
-      {/* FLEET */}
       {tab === "fleet" && (
         <div>
-          <h2>{area} Fleet</h2>
-          <div>Bus: {buses[fleetIndex]}</div>
-
-          {Object.keys(fleetTemplate).map(k => (
-            <div key={k}>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={fleetResults[buses[fleetIndex]]?.[k] || false}
-                  onChange={(e) => {
-                    assignDriver(buses[fleetIndex]);
-                    setFleetResults(p => ({
-                      ...p,
-                      [buses[fleetIndex]]: {
-                        ...(p[buses[fleetIndex]] || fleetTemplate),
-                        [k]: e.target.checked   // ✅ FIXED
-                      }
-                    }));
+          <h2>Fleet Grid</h2>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 10 }}>
+            {buses.map(bus => {
+              const data = fleetResults[bus];
+              return (
+                <div
+                  key={bus}
+                  onClick={() => setSelectedFleetBus(bus)}
+                  style={{
+                    padding: 10,
+                    background: getColor(data?.status),
+                    color: "white",
+                    cursor: "pointer",
+                    borderRadius: 6,
+                    textAlign: "center"
                   }}
-                />
-                {k}
-              </label>
+                >
+                  {bus}
+                </div>
+              );
+            })}
+          </div>
+
+          {selectedFleetBus && (
+            <div>
+              <h3>Bus {selectedFleetBus}</h3>
+              {Object.keys(fleetTemplate).map(k => (
+                <div key={k}>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={fleetResults[selectedFleetBus]?.[k] || false}
+                      onChange={(e) => {
+                        assignDriver(selectedFleetBus);
+                        setFleetResults(p => {
+                          const existing = p[selectedFleetBus] || { ...fleetTemplate };
+                          const updated = { ...existing, [k]: e.target.checked };
+                          const allChecked = Object.values(updated).every(Boolean);
+                          const anyChecked = Object.values(updated).some(Boolean);
+
+                          return {
+                            ...p,
+                            [selectedFleetBus]: {
+                              ...updated,
+                              status: allChecked
+                                ? STATUS.COMPLETE
+                                : anyChecked
+                                ? STATUS.IN_PROGRESS
+                                : STATUS.NOT_STARTED
+                            }
+                          };
+                        });
+                      }}
+                    /> {k}
+                  </label>
+                </div>
+              ))}
             </div>
-          ))}
+          )}
         </div>
       )}
 
-      {/* CCM */}
+      {tab === "monthly" && (
+        <div>
+          <h2>Monthly Audits</h2>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 10 }}>
+            {buses.map(bus => {
+              const data = monthlyResults[bus];
+              return (
+                <div
+                  key={bus}
+                  onClick={() => setSelectedMonthlyBus(bus)}
+                  style={{
+                    padding: 10,
+                    background: getColor(data?.status),
+                    color: "white",
+                    cursor: "pointer",
+                    borderRadius: 6,
+                    textAlign: "center"
+                  }}
+                >
+                  {bus}
+                </div>
+              );
+            })}
+          </div>
+
+          {selectedMonthlyBus && (
+            <div>
+              <h3>Bus {selectedMonthlyBus}</h3>
+              {Object.keys(monthlyTemplate).map(k => (
+                <div key={k}>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={monthlyResults[selectedMonthlyBus]?.[k] || false}
+                      onChange={(e) => {
+                        assignDriver(selectedMonthlyBus);
+                        setMonthlyResults(p => {
+                          const existing = p[selectedMonthlyBus] || { ...monthlyTemplate };
+                          const updated = { ...existing, [k]: e.target.checked };
+                          const allChecked = Object.values(updated).every(Boolean);
+
+                          return {
+                            ...p,
+                            [selectedMonthlyBus]: {
+                              ...updated,
+                              status: allChecked ? STATUS.COMPLETE : STATUS.IN_PROGRESS
+                            }
+                          };
+                        });
+                      }}
+                    /> {k}
+                  </label>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {tab === "ccm" && (
         <div>
           <CCM buses={buses} area={area} oosList={oosList} />
         </div>
       )}
-
-      {/* DOWNLOAD */}
-      <hr style={{ marginTop: 20 }} />
-
-      <div>
-        <button onClick={() => downloadCSV("BES")}>Download BES</button>
-        <button onClick={() => downloadCSV("Fleet")} style={{ marginLeft: 10 }}>
-          Download Fleet
-        </button>
-        <button onClick={() => downloadCSV("CCM")} style={{ marginLeft: 10 }}>
-          Download CCM
-        </button>
-      </div>
-
     </div>
   );
 }
