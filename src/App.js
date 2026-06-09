@@ -1,6 +1,7 @@
-import CCM from "./modules/ccm/CCM";import CCM from "./modules/ccmSES, SE_BUSES } from "./buses";
+import CCM from "./modules/ccm/CCM";
+import { useState, useEffect } from "react";
+import { NW_BUSES, SE_BUSES } from "./buses";
 
-// ✅ Sample drivers
 const DRIVERS = ["Smith", "Johnson", "Williams", "Brown", "Jones"];
 
 const OOS_NW = ["301", "305"];
@@ -56,6 +57,7 @@ export default function App() {
 
   const nextBes = () => setBesIndex(i => (i + 1) % buses.length);
 
+  /* ✅ FIXED DRIVER LINK */
   const assignDriver = (bus) => {
     if (!currentDriver) return;
     setBusDrivers(prev => ({ ...prev, [bus]: currentDriver }));
@@ -67,13 +69,9 @@ export default function App() {
   const missedCombined = [...new Set([...missedBES, ...missedFleet])];
 
   /* ✅ PERCENT */
-  const besPercent = Math.round(
-    (Object.keys(besResults).length / buses.length) * 100
-  ) || 0;
+  const besPercent = Math.round((Object.keys(besResults).length / buses.length) * 100) || 0;
 
-  const fleetPercent = Math.round(
-    (Object.keys(fleetResults).length / buses.length) * 100
-  ) || 0;
+  const fleetPercent = Math.round((Object.keys(fleetResults).length / buses.length) * 100) || 0;
 
   const savedCCM = JSON.parse(localStorage.getItem(`ccm-progress-${area}`) || "{}");
   const ccmPercent = Math.round(
@@ -211,7 +209,7 @@ export default function App() {
                       ...p,
                       [buses[fleetIndex]]: {
                         ...(p[buses[fleetIndex]] || fleetTemplate),
-                        [k]: e.target.checked
+                        [k]: e.target.checked   // ✅ FIXED
                       }
                     }));
                   }}
@@ -242,7 +240,7 @@ export default function App() {
           Download CCM
         </button>
       </div>
+
     </div>
   );
 }
-import { useState, useEffect } from "react";
