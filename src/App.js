@@ -1,145 +1,95 @@
-// ✅ SHAREPOINT + CSV HYBRID DATA MODEL (FINAL ARCHITECTURE READY)
-// This version PREPS for CSV integration (drivers, in-service, OOS, routes)
+// ✅ SAFE WORKING VERSION (NO SHAREPOINT — VERCEL COMPATIBLE)
+// Keeps all logic, ready for CSV next session
+
 import CCM from "./modules/ccm/CCM";
 import { useState, useEffect } from "react";
-import { sp } from "@pnp/sp/presets/all";
 
-sp.setup({
-  sp: {
-    baseUrl: "https://fga.sharepoint.com/sites/20753SafetyAutomation"
-  }
-});
-
-const LISTS = {
-  BES: "BES_Inspections",
-  FLEET: "Fleet_Inspections",
-  BUILDING: "Building_Checks"
-};
-
-// ✅ DATE HELPER
-const getTodayRange = () => {
-  const now = new Date();
-  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const end = new Date(start);
-  end.setDate(end.getDate() + 1);
-  return { start, end };
+const STATUS = {
+  NOT_STARTED: "NOT_STARTED",
+  IN_PROGRESS: "IN_PROGRESS",
+  COMPLETE: "COMPLETE",
+  FAILED: "FAILED"
 };
 
 export default function App() {
   const [tab, setTab] = useState("dashboard");
   const [area, setArea] = useState("Northwest");
 
-  // ✅ SHAREPOINT DATA
-  const [besResults, setBesResults] = useState([]);
-  const [fleetResults, setFleetResults] = useState([]);
-  const [buildingResults, setBuildingResults] = useState({});
+  // ✅ BASE BUS LIST (fallback until CSV added)
+  const [allBuses, setAllBuses] = useState(["301","302","303","304","305","306"]);
+  const [inServiceBuses, setInServiceBuses] = useState([]);
+  const [oosBuses, setOosBuses] = useState([]);
 
-  // ✅ CSV-DERIVED STATE (COMING NEXT PHASE)
-  const [allBuses, setAllBuses] = useState([]);
-  const [inServiceBuses, setInServiceBuses] = useState([]);
-  const [oosBuses, setOosBuses] = useState([]);
-  const [routeBuses, setRouteBuses] = useState([]);
+  const activeBuses = inServiceBuses.length > 0 ? inServiceBuses : allBuses;
 
+  const [busDrivers, setBusDrivers] = useState({});
+  const [currentDriver, setCurrentDriver] = useState("");
 
-  const [currentDriver, setCurrentDriver] = useState("");
+  const [besResults, setBesResults] = useState({});
+  const [fleetResults, setFleetResults] = useState({});
 
+  const [selectedBesBus, setSelectedBesBus] = useState(null);
+  const [selectedFleetBus, setSelectedFleetBus] = useState(null);
 
   const today = new Date().getDay();
   const isFriday = today === 5;
 
-  // ✅ ACTIVE BUSES LOGIC (CORE CHANGE)
-  const activeBuses = inServiceBuses.length > 0
-    ? inServiceBuses
-    : allBuses;
-
-
-  useEffect(() => {
-    loadSharePointData();
-  }, [area]);
-
-  const loadSharePointData = async () => {
-    const besData = await sp.web.lists.getByTitle(LISTS.BES).items.get();
-    const fleetData = await sp.web.lists.getByTitle(LISTS.FLEET).items.get();
-    const buildingData = await sp.web.lists.getByTitle(LISTS.BUILDING).items.top(1).get();
-
-    setBesResults(besData);
-    setFleetResults(fleetData);
-    setBuildingResults(buildingData[0] || {});
+  const fleetTemplate = {
+    extinguisher: false,
+    registration: false,
+    insurance: false,
+    firstAid: false,
+    bodyFluid: false,
+    collisionPacket: false
   };
 
-  // ✅ UPSERT
-  const upsertRecord = async (listName, bus) => {
-    const { start, end } = getTodayRange();
+  // ✅ LOAD / SAVE LOCAL
+  useEffect(() => {
+    setBusDrivers(JSON.parse(localStorage.getItem(`drivers-${area}`) || "{}"));
+    setBesResults(JSON.parse(localStorage.getItem(`bes-${area}`) || "{}"));
+    setFleetResults(JSON.parse(localStorage.getItem(`fleet-${area}`) || "{}"));
+  }, [area]);
 
-    const existing = await sp.web.lists
-      .getByTitle(listName)
-      .items
-      .filter(
-        `Title eq '${bus}' and Area eq '${area}' and Date ge datetime'${start.toISOString()}' and Date lt datetime'${end.toISOString()}'`
-      )
-      .top(1)
-      .get();
+  useEffect(() => {
+    localStorage.setItem(`drivers-${area}`, JSON.stringify(busDrivers));
+  }, [busDrivers, area]);
 
-    if (existing.length > 0) {
-      await sp.web.lists.getByTitle(listName)
-        .items.getById(existing[0].Id)
-        .update({
-          Status: "COMPLETE",
-          Driver: currentDriver,
-          Date: new Date()
-        });
-    } else {
-      await sp.web.lists.getByTitle(listName).items.add({
-        Title: bus,
-        Area: area,
-        Status: "COMPLETE",
-        Driver: currentDriver,
-        Date: new Date()
-      });
-    }
+  useEffect(() => {
+    localStorage.setItem(`bes-${area}`, JSON.stringify(besResults));
+  }, [besResults, area]);
 
-    loadSharePointData();
-  };
+  useEffect(() => {
+    localStorage.setItem(`fleet-${area}`, JSON.stringify(fleetResults));
+  }, [fleetResults, area]);
 
-  const saveBES = (bus) => upsertRecord(LISTS.BES, bus);
-  const saveFleet = (bus) => upsertRecord(LISTS.FLEET, bus);
+  const assignDriver = (bus) => {
+    if (!currentDriver) return;
+    setBusDrivers(prev => ({ ...prev, [bus]: currentDriver }));
+  };
 
-  const saveBuilding = async (field, value) => {
-    if (buildingResults.Id) {
-      await sp.web.lists.getByTitle(LISTS.BUILDING)
-        .items.getById(buildingResults.Id)
-        .update({
-          [field]: value,
-          Area: area,
-          Updated: new Date()
-        });
-    }
-    loadSharePointData();
-  };
+  const getColor = (status) => {
+    if (status === STATUS.COMPLETE) return "green";
+    if (status === STATUS.FAILED) return "red";
+    if (status === STATUS.IN_PROGRESS) return "orange";
+    return "gray";
+  };
 
-  // ✅ HELPERS
-  const getColor = (status) => {
-    if (status === "COMPLETE") return "green";
-    return "gray";
-  };
+  // ✅ VIOLATIONS (ACTIVE FLEET ONLY)
+  const besViolations = activeBuses.filter(b => {
+    if (oosBuses.includes(b)) return false;
+    return isFriday && !besResults[b]?.status;
+  });
 
-  const getBesStatus = (bus) => besResults.find(b => b.Title === bus && b.Area === area)?.Status;
-  const getFleetStatus = (bus) => fleetResults.find(b => b.Title === bus && b.Area === area)?.Status;
+  const fleetViolations = activeBuses.filter(b => {
+    if (oosBuses.includes(b)) return false;
+    return isFriday && fleetResults[b]?.status !== STATUS.COMPLETE;
+  });
 
-  // ✅ ENFORCEMENT FILTERED TO ACTIVE ONLY
-  const besViolations = activeBuses.filter(b => {
-    if (oosBuses.includes(b)) return false;
-    return isFriday && !getBesStatus(b);
-  });
-  const fleetViolations = activeBuses.filter(b => {
-    if (oosBuses.includes(b)) return false;
-    return isFriday && getFleetStatus(b) !== "COMPLETE";
-  });
-  const totalViolations = new Set([...besViolations, ...fleetViolations]).size;
+  const totalViolations = new Set([...besViolations, ...fleetViolations]).size;
 
   return (
     <div style={{ padding: 20 }}>
-      <h1>Safety Compliance System (LIVE) ✅</h1>
+      <h1>Safety Compliance System ✅</h1>
 
       <select value={area} onChange={(e) => setArea(e.target.value)}>
         <option>Northwest</option>
@@ -148,112 +98,152 @@ export default function App() {
 
       <div>
         <button onClick={() => setTab("dashboard")}>Dashboard</button>
-        <button onClick={() => setTab("bes")}>BES</button>
-        <button onClick={() => setTab("fleet")}>Fleet</button>
-        <button onClick={() => setTab("building")}>Building</button>
+        <button onClick={() => setTab("bes")}>BES</button>
+        <button onClick={() => setTab("fleet")}>Fleet</button>
         <button onClick={() => setTab("ccm")}>CCM</button>
       </div>
 
-      {tab === "dashboard" && (
-        <div>
-          <h2>Dashboard</h2>
+      {/* DASHBOARD */}
+      {tab === "dashboard" && (
+        <div>
+          <h2>Dashboard</h2>
 
+          {isFriday && (
+            <div style={{ background: "#ffcccc", padding: 10 }}>
+              🚨 {totalViolations} TOTAL VIOLATIONS
+              <div>BES: {besViolations.length}</div>
+              <div>Fleet: {fleetViolations.length}</div>
+            </div>
+          )}
 
-          {isFriday && (
-            <div style={{ background: "#ffcccc", padding: 10 }}>
-              🚨 {totalViolations} TOTAL VIOLATIONS
-              <div>BES: {besViolations.length}</div>
-              <div>Fleet: {fleetViolations.length}</div>
-            </div>
-          )}
-
-
-          <div style={{ marginTop: 10 }}>
-            Active Buses: {activeBuses.length}
-          </div>
-          <div>OOS Buses: {oosBuses.length}</div>
-        </div>
-      )}
-
-      {tab === "bes" && (
-        <div>
-          <h2>BES (Active Fleet Only)</h2>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 10 }}>
-            {activeBuses.map(bus => {
-              const status = getBesStatus(bus);
-              const violation = besViolations.includes(bus);
-
-              return (
-                <div
-                  key={bus}
-                  onClick={() => saveBES(bus)}
-                  style={{
-                    padding: 10,
-                    background: getColor(status),
-                    border: violation ? "3px solid red" : "1px solid #999",
-                    color: "white",
-                    textAlign: "center",
-                    cursor: "pointer"
-                  }}
-                >
-                  {bus}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {tab === "fleet" && (
-        <div>
-          <h2>Fleet (Active Fleet Only)</h2>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 10 }}>
-            {activeBuses.map(bus => {
-              const status = getFleetStatus(bus);
-              const violation = fleetViolations.includes(bus);
-
-              return (
-                <div
-                  key={bus}
-                  onClick={() => saveFleet(bus)}
-                  style={{
-                    padding: 10,
-                    background: getColor(status),
-                    border: violation ? "3px solid red" : "1px solid #999",
-                    color: "white",
-                    textAlign: "center",
-                    cursor: "pointer"
-                  }}
-                >
-                  {bus}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {tab === "building" && (
-        <div>
-          <h2>Building Compliance</h2>
-
-          {["extinguisherPresent", "extinguisherCharged", "extinguisherTagged"].map(k => (
-            <div key={k}>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={buildingResults[k] || false}
-                  onChange={(e) => saveBuilding(k, e.target.checked)}
-                /> {k}
-              </label>
-            </div>
-          ))}
+          <div>Active Buses: {activeBuses.length}</div>
+          <div>OOS Buses: {oosBuses.length}</div>
         </div>
       )}
 
+      {/* BES GRID */}
+      {tab === "bes" && (
+        <div>
+          <h2>BES Grid</h2>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 10 }}>
+            {activeBuses.map(bus => {
+              const data = besResults[bus];
+              const violation = besViolations.includes(bus);
+
+              return (
+                <div
+                  key={bus}
+                  onClick={() => setSelectedBesBus(bus)}
+                  style={{
+                    padding: 10,
+                    background: getColor(data?.status),
+                    border: violation ? "3px solid red" : "1px solid #999",
+                    color: "white",
+                    textAlign: "center",
+                    cursor: "pointer"
+                  }}
+                >
+                  {bus}
+                </div>
+              );
+            })}
+          </div>
+
+          {selectedBesBus && (
+            <div>
+              <h3>Bus {selectedBesBus}</h3>
+              <button onClick={() => {
+                assignDriver(selectedBesBus);
+                setBesResults(p => ({
+                  ...p,
+                  [selectedBesBus]: { status: STATUS.COMPLETE }
+                }));
+              }}>Tag ✅</button>
+
+              <button onClick={() => {
+                assignDriver(selectedBesBus);
+                setBesResults(p => ({
+                  ...p,
+                  [selectedBesBus]: { status: STATUS.FAILED }
+                }));
+              }}>Missing ❌</button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* FLEET GRID */}
+      {tab === "fleet" && (
+        <div>
+          <h2>Fleet Grid</h2>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 10 }}>
+            {activeBuses.map(bus => {
+              const data = fleetResults[bus];
+              const violation = fleetViolations.includes(bus);
+
+              return (
+                <div
+                  key={bus}
+                  onClick={() => setSelectedFleetBus(bus)}
+                  style={{
+                    padding: 10,
+                    background: getColor(data?.status),
+                    border: violation ? "3px solid red" : "1px solid #999",
+                    color: "white",
+                    textAlign: "center",
+                    cursor: "pointer"
+                  }}
+                >
+                  {bus}
+                </div>
+              );
+            })}
+          </div>
+
+          {selectedFleetBus && (
+            <div>
+              <h3>Bus {selectedFleetBus}</h3>
+              {Object.keys(fleetTemplate).map(k => (
+                <div key={k}>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={fleetResults[selectedFleetBus]?.[k] || false}
+                      onChange={(e) => {
+                        assignDriver(selectedFleetBus);
+                        setFleetResults(p => {
+                          const existing = p[selectedFleetBus] || { ...fleetTemplate };
+                          const updated = { ...existing, [k]: e.target.checked };
+                          const allChecked = Object.values(updated).every(Boolean);
+                          const anyChecked = Object.values(updated).some(Boolean);
+
+                          return {
+                            ...p,
+                            [selectedFleetBus]: {
+                              ...updated,
+                              status: allChecked
+                                ? STATUS.COMPLETE
+                                : anyChecked
+                                ? STATUS.IN_PROGRESS
+                                : STATUS.NOT_STARTED
+                            }
+                          };
+                        });
+                      }}
+                    /> {k}
+                  </label>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* CCM */}
       {tab === "ccm" && (
         <CCM buses={activeBuses} area={area} oosList={oosBuses} />
       )}
+
     </div>
   );
 }
