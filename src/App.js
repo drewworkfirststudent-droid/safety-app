@@ -137,6 +137,21 @@ const downloadCSV = (type) => {
 
   const missedCombined = [...new Set([...missedBES, ...missedFleet])];
 
+  // ✅ PERCENT CALCULATIONS (RESTORED)
+const besCompleted = Object.keys(besResults).length;
+
+const fleetCompleted = Object.keys(fleetResults).filter(
+  bus => Object.values(fleetResults[bus] || {}).length > 0
+).length;
+
+const besPercent = Math.round((besCompleted / buses.length) * 100) || 0;
+const fleetPercent = Math.round((fleetCompleted / buses.length) * 100) || 0;
+
+const savedCCM = JSON.parse(localStorage.getItem(`ccm-progress-${area}`) || "{}");
+const ccmPercent = Math.round(
+  (Object.keys(savedCCM.results || {}).length / buses.length) * 100
+) || 0;
+
   return (
     <div style={{ padding: 20 }}>
       <h1>Safety Compliance System ✅</h1>
@@ -152,10 +167,6 @@ const downloadCSV = (type) => {
         <button onClick={() => setTab("fleet")}>Fleet</button>
         <button onClick={() => setTab("ccm")}>CCM</button>
 
-  <hr style={{ marginTop: 20 }} />
-
-<div>
-  <button onClick={() => downloadCSV("BES")}>
     Download BES
   </button>
 
@@ -175,21 +186,7 @@ const downloadCSV = (type) => {
 </div>
       
       </div>
-      // ✅ PERCENT CALCULATIONS (RESTORED)
-const besCompleted = Object.keys(besResults).length;
-
-const fleetCompleted = Object.keys(fleetResults).filter(
-  bus => Object.values(fleetResults[bus] || {}).length > 0
-).length;
-
-const besPercent = Math.round((besCompleted / buses.length) * 100) || 0;
-const fleetPercent = Math.round((fleetCompleted / buses.length) * 100) || 0;
-
-// ✅ CCM percent (same logic you used earlier)
-const savedCCM = JSON.parse(localStorage.getItem(`ccm-progress-${area}`) || "{}");
-const ccmPercent = Math.round(
-  (Object.keys(savedCCM.results || {}).length / buses.length) * 100
-) || 0;
+      
       {/* ✅ DRIVER SELECT */}
       <div style={{ marginTop: 10 }}>
         Driver:
@@ -203,33 +200,6 @@ const ccmPercent = Math.round(
 {tab === "dashboard" && (
   <div>
     <h2>Dashboard</h2>
-
-    {isFriday && (
-      <div style={{ color: "red", fontWeight: "bold" }}>
-        🚨 FINAL COMPLIANCE REVIEW
-      </div>
-    )}
-
-    <div>BES: {besPercent}%</div>
-    <div>Fleet: {fleetPercent}%</div>
-    <div>CCM: {ccmPercent}%</div>
-
-    <div>BES Missed: {missedBES.length}</div>
-    <div>Fleet Missed: {missedFleet.length}</div>
-
-    <h3 style={{ marginTop: 10 }}>Missed Buses</h3>
-
-    {missedCombined.length === 0 ? (
-      <div>✅ None</div>
-    ) : (
-      missedCombined.map(bus => (
-        <div key={bus}>
-          Bus {bus} — Driver: {busDrivers[bus] || "UNKNOWN"}
-        </div>
-      ))
-    )}
-  </div>
-)}
 
           {isFriday && (
             <div style={{ color: "red", fontWeight: "bold" }}>
@@ -332,6 +302,10 @@ const ccmPercent = Math.round(
 
       {tab === "ccm" && (
         <CCM buses={buses} area={area} oosList={oosList} />
+        <hr style={{ marginTop: 20 }} />
+
+<div>
+  <button onClick={() => downloadCSV("BES")}>Download BES
       )}
     </div>
   );
