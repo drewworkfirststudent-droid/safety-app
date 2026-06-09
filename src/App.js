@@ -57,7 +57,6 @@ export default function App() {
   }, [fleetResults, area]);
 
   const nextBes = () => setBesIndex(i => (i + 1) % buses.length);
-  const nextFleet = () => setFleetIndex(i => (i + 1) % buses.length);
 
   const assignDriver = (bus) => {
     if (!currentDriver) return;
