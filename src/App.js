@@ -167,11 +167,23 @@ const ccmPercent = Math.round(
         <button onClick={() => setTab("fleet")}>Fleet</button>
         <button onClick={() => setTab("ccm")}>CCM</button>
 
-    Download BES
-  </button>
+    <button onClick={() => downloadCSV("BES")}>
+  Download BES
+</button>
 
-  <button
-    onClick={() => downloadCSV("Fleet")}
+<button
+  onClick={() => downloadCSV("Fleet")}
+  style={{ marginLeft: 10 }}
+>
+  Download Fleet
+</button>
+
+<button
+  onClick={() => downloadCSV("CCM")}
+  style={{ marginLeft: 10 }}
+>
+  Download CCM
+</button>
     style={{ marginLeft: 10 }}
   >
     Download Fleet
@@ -300,13 +312,35 @@ const ccmPercent = Math.round(
         </div>
       )}
 
-      {tab === "ccm" && (
-        <CCM buses={buses} area={area} oosList={oosList} />
-        <hr style={{ marginTop: 20 }} />
+   {tab === "ccm" && (
+  <div>
+    <CCM buses={buses} area={area} oosList={oosList} />
+  </div>
+)}
+
+<hr style={{ marginTop: 20 }} />
 
 <div>
-  <button onClick={() => downloadCSV("BES")}>Download BES
-      )}
-    </div>
-  );
+  <button onClick={() => downloadCSV("BES")}>
+    Download BES
+  </button>
+
+  <button
+    onClick={() => downloadCSV("Fleet")}
+    style={{ marginLeft: 10 }}
+  >
+    Download Fleet
+  </button>
+
+  <button
+    onClick={() => downloadCSV("CCM")}
+    style={{ marginLeft: 10 }}
+  >
+    Download CCM
+  </button>
+</div>
+
+</div>
+);
 }
+   
