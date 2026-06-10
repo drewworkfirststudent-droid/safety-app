@@ -168,6 +168,15 @@ const ccmPercent = Math.round((ccmDone / activeBuses.length) * 100) || 0;
       "Status",
       "Date/Time"
     ];
+    const resetBES = () => {
+  setBesResults({});
+  localStorage.removeItem(`bes-${area}`);
+};
+
+const resetFleet = () => {
+  setFleetResults({});
+  localStorage.removeItem(`fleet-${area}`);
+};
 
     const rows = activeBuses.map(bus => {
       const d = fleetResults[bus] || {};
