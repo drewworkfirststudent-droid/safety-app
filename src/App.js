@@ -223,7 +223,7 @@ export default function App() {
         <button onClick={() => setTab("ccm")}>CCM</button>
       </div>
 
-      {/* ✅ UPDATED DASHBOARD */}
+      {/* UPDATED DASHBOARD */}
       {tab === "dashboard" && (
         <div>
           <h2>Dashboard</h2>
@@ -302,7 +302,7 @@ export default function App() {
     </div>
   );
 }
-                Tag ✅
+                Tag
               </button>
 
               <button
@@ -333,7 +333,7 @@ export default function App() {
         <div>
           <div style={{ display: "flex", justifyContent: "space-between" }}>
             <h2>Fleet Grid</h2>
-            <button onClick={exportFleet}>⬇ Export CSV</button>
+            <button onClick={exportFleet}>Export CSV</button>
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 10 }}>
