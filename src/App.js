@@ -123,6 +123,17 @@ export default function App() {
     ...besViolations,
     ...fleetViolations
   ]).size;
+  const besPercent = Math.round(
+  (Object.values(besResults).filter(v => v?.status).length / activeBuses.length) * 100
+) || 0;
+
+const fleetPercent = Math.round(
+  (Object.values(fleetResults).filter(v => v?.status === STATUS.COMPLETE).length / activeBuses.length) * 100
+) || 0;
+
+const savedCCM = JSON.parse(localStorage.getItem(`ccm-progress-${area}`) || "{}");
+const ccmDone = Object.keys(savedCCM.results || {}).length;
+const ccmPercent = Math.round((ccmDone / activeBuses.length) * 100) || 0;
 
   // CSV EXPORTS
   const exportBES = () => {
@@ -236,8 +247,14 @@ export default function App() {
             </div>
           )}
 
-          <div>Active Buses: {activeBuses.length}</div>
-          <div>OOS Buses: {oosBuses.length}</div>
+          <div>
+          Total: {allBuses.length} | Active: {activeBuses.length} | OOS: {oosBuses.length}
+          </div>
+
+          <div>BES: {besPercent}%</div>
+          <div>Fleet: {fleetPercent}%</div>
+          <div>CCM: {ccmPercent}%</div>
+
 
           <h3>Export All</h3>
           <button onClick={exportBES} style={{ marginRight: 10 }}>
