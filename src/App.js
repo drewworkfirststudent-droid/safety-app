@@ -15,7 +15,7 @@ const STATUS = {
 };
 
 const STAFF = [
-  "Drew","Courtney","Brandi","Tony","Lee","Johnny","Mike"
+  "Drew","Courtney","Brandi","Josh","Lee","Johnny", "Jonathan", "Kris", "Mike"
 ];
 
 function formatDate(ts) {
