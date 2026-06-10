@@ -62,7 +62,8 @@ export default function App() {
   const [selectedBesBus, setSelectedBesBus] = useState(null);
   const [selectedFleetBus, setSelectedFleetBus] = useState(null);
 
-  const isFriday = new Date().getDay() === 5;
+  const today = new Date().getDay();
+  const isFriday = today === 5;
 
   const fleetTemplate = {
     extinguisher: false,
@@ -123,19 +124,6 @@ export default function App() {
     ...fleetViolations
   ]).size;
 
-  // ✅ SAFE ADDITIONS (ONLY THESE)
-  const besPercent = Math.round(
-    (Object.values(besResults).filter(v => v?.status).length / activeBuses.length) * 100
-  ) || 0;
-
-  const fleetPercent = Math.round(
-    (Object.values(fleetResults).filter(v => v?.status === STATUS.COMPLETE).length / activeBuses.length) * 100
-  ) || 0;
-
-  const savedCCM = JSON.parse(localStorage.getItem(`ccm-progress-${area}`) || "{}");
-  const ccmDone = Object.keys(savedCCM.results || {}).length;
-  const ccmPercent = Math.round((ccmDone / activeBuses.length) * 100) || 0;
-
   // CSV EXPORTS
   const exportBES = () => {
     const headers = ["Bus", "Assigned Driver", "Logged By", "Status", "Date/Time"];
@@ -157,8 +145,17 @@ export default function App() {
 
   const exportFleet = () => {
     const headers = [
-      "Bus","Assigned Driver","Logged By","Extinguisher","Registration",
-      "Insurance","First Aid","Body Fluid","Collision Packet","Status","Date/Time"
+      "Bus",
+      "Assigned Driver",
+      "Logged By",
+      "Extinguisher",
+      "Registration",
+      "Insurance",
+      "First Aid",
+      "Body Fluid",
+      "Collision Packet",
+      "Status",
+      "Date/Time"
     ];
 
     const rows = activeBuses.map(bus => {
@@ -187,7 +184,7 @@ export default function App() {
     <div style={{ padding: 20 }}>
       <h1>Safety Compliance System ✅</h1>
 
-      {/* HEADER */}
+      {/* AREA + LOGGED BY */}
       <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 10 }}>
         <div>
           Area:&nbsp;
@@ -201,7 +198,9 @@ export default function App() {
           Logged By:&nbsp;
           <select value={loggedBy} onChange={(e) => setLoggedBy(e.target.value)}>
             <option value="">-- Select --</option>
-            {STAFF.map(s => <option key={s}>{s}</option>)}
+            {STAFF.map(s => (
+              <option key={s}>{s}</option>
+            ))}
           </select>
         </div>
 
@@ -209,7 +208,7 @@ export default function App() {
           Assigned Driver:&nbsp;
           <select value={currentDriver} onChange={(e) => setCurrentDriver(e.target.value)}>
             <option value="">-- Select --</option>
-            {["Smith","Johnson","Williams","Brown","Jones"].map(d => (
+            {["Smith", "Johnson", "Williams", "Brown", "Jones"].map(d => (
               <option key={d}>{d}</option>
             ))}
           </select>
@@ -224,42 +223,188 @@ export default function App() {
         <button onClick={() => setTab("ccm")}>CCM</button>
       </div>
 
-      {/* ✅ DASHBOARD (SAFE UPDATE ONLY) */}
+      {/* DASHBOARD */}
       {tab === "dashboard" && (
         <div>
           <h2>Dashboard</h2>
 
           {isFriday && (
             <div style={{ background: "#ffcccc", padding: 10, marginBottom: 10 }}>
-              {totalViolations} TOTAL VIOLATIONS
+              🚨 {totalViolations} TOTAL VIOLATIONS
               <div>BES: {besViolations.length}</div>
               <div>Fleet: {fleetViolations.length}</div>
             </div>
           )}
 
-          <div>
-            Total: {allBuses.length} | Active: {activeBuses.length} | OOS: {oosBuses.length}
-          </div>
-
-          <div>BES: {besPercent}%</div>
-          <div>Fleet: {fleetPercent}%</div>
-          <div>CCM: {ccmPercent}%</div>
+          <div>Active Buses: {activeBuses.length}</div>
+          <div>OOS Buses: {oosBuses.length}</div>
 
           <h3>Export All</h3>
           <button onClick={exportBES} style={{ marginRight: 10 }}>
-            Export BES CSV
+            ⬇ BES CSV
           </button>
           <button onClick={exportFleet}>
-            Export Fleet CSV
+            ⬇ Fleet CSV
           </button>
         </div>
       )}
 
-      {/* BES */}
-      {tab === "bes" && <div>...</div>}
+      {/* BES GRID */}
+      {tab === "bes" && (
+        <div>
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <h2>BES Grid</h2>
+            <button onClick={exportBES}>⬇ Export CSV</button>
+          </div>
 
-      {/* FLEET */}
-      {tab === "fleet" && <div>...</div>}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 10 }}>
+            {activeBuses.map(bus => {
+              const data = besResults[bus];
+              const violation = besViolations.includes(bus);
+
+              return (
+                <div
+                  key={bus}
+                  onClick={() => setSelectedBesBus(bus)}
+                  style={{
+                    padding: 10,
+                    background: getColor(data?.status),
+                    border: violation ? "3px solid red" : "1px solid #999",
+                    color: "white",
+                    textAlign: "center",
+                    cursor: "pointer",
+                    borderRadius: 6
+                  }}
+                >
+                  {bus}
+                </div>
+              );
+            })}
+          </div>
+
+          {selectedBesBus && (
+            <div style={{ marginTop: 16 }}>
+              <h3>Bus {selectedBesBus}</h3>
+
+              <button
+                onClick={() => {
+                  if (!loggedBy) return alert("Select Logged By");
+
+                  assignDriver(selectedBesBus);
+                  setBesResults(p => ({
+                    ...p,
+                    [selectedBesBus]: {
+                      status: STATUS.COMPLETE,
+                      loggedBy,
+                      timestamp: Date.now()
+                    }
+                  }));
+                }}
+              >
+                Tag ✅
+              </button>
+
+              <button
+                style={{ marginLeft: 10 }}
+                onClick={() => {
+                  if (!loggedBy) return alert("Select Logged By");
+
+                  assignDriver(selectedBesBus);
+                  setBesResults(p => ({
+                    ...p,
+                    [selectedBesBus]: {
+                      status: STATUS.FAILED,
+                      loggedBy,
+                      timestamp: Date.now()
+                    }
+                  }));
+                }}
+              >
+                Missing ❌
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* FLEET GRID */}
+      {tab === "fleet" && (
+        <div>
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <h2>Fleet Grid</h2>
+            <button onClick={exportFleet}>⬇ Export CSV</button>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 10 }}>
+            {activeBuses.map(bus => {
+              const data = fleetResults[bus];
+              const violation = fleetViolations.includes(bus);
+
+              return (
+                <div
+                  key={bus}
+                  onClick={() => setSelectedFleetBus(bus)}
+                  style={{
+                    padding: 10,
+                    background: getColor(data?.status),
+                    border: violation ? "3px solid red" : "1px solid #999",
+                    color: "white",
+                    textAlign: "center",
+                    cursor: "pointer",
+                    borderRadius: 6
+                  }}
+                >
+                  {bus}
+                </div>
+              );
+            })}
+          </div>
+
+          {selectedFleetBus && (
+            <div style={{ marginTop: 16 }}>
+              <h3>Bus {selectedFleetBus}</h3>
+
+              {Object.keys(fleetTemplate).map(k => (
+                <div key={k}>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={fleetResults[selectedFleetBus]?.[k] || false}
+                      onChange={(e) => {
+                        if (!loggedBy) return alert("Select Logged By");
+
+                        assignDriver(selectedFleetBus);
+
+                        setFleetResults(p => {
+                          const existing = p[selectedFleetBus] || { ...fleetTemplate };
+                          const updated = { ...existing, [k]: e.target.checked };
+
+                          const allChecked = Object.keys(fleetTemplate).every(key => updated[key]);
+                          const anyChecked = Object.keys(fleetTemplate).some(key => updated[key]);
+
+                          return {
+                            ...p,
+                            [selectedFleetBus]: {
+                              ...updated,
+                              status: allChecked
+                                ? STATUS.COMPLETE
+                                : anyChecked
+                                ? STATUS.IN_PROGRESS
+                                : STATUS.NOT_STARTED,
+                              loggedBy,
+                              timestamp: Date.now()
+                            }
+                          };
+                        });
+                      }}
+                    /> {k}
+                  </label>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* CCM */}
       {tab === "ccm" && (
