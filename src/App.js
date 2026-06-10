@@ -216,6 +216,27 @@ export default function App() {
   </div>
 );
 
+    <div>BES Compliance: {besPercent}%</div>
+    <div>Fleet Compliance: {fleetPercent}%</div>
+
+    <div>
+      CCM: {ccmPercent}% —{" "}
+      {ccmDone === activeBuses.length
+        ? "Complete"
+        : `${activeBuses.length - ccmDone} remaining`}
+    </div>
+
+    <div style={{ marginTop: 10 }}>
+      <button onClick={exportBES} style={{ marginRight: 10 }}>
+        Export BES CSV
+      </button>
+      <button onClick={exportFleet}>
+        Export Fleet CSV
+      </button>
+    </div>
+  </div>
+);
+
   return (
     <div style={{ padding: 20 }}>
       <h1>Safety Compliance System ✅</h1>
