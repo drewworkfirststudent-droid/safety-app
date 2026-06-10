@@ -221,7 +221,7 @@ export default function App() {
         <button onClick={() => setTab("ccm")}>CCM</button>
       </div>
 
-      {/* DASHBOARD */}
+      {/* ✅ UPDATED DASHBOARD */}
       {tab === "dashboard" && (
         <div>
           <h2>Dashboard</h2>
@@ -234,10 +234,59 @@ export default function App() {
             </div>
           )}
 
-          <div>Active Buses: {activeBuses.length}</div>
-          <div>OOS Buses: {oosBuses.length}</div>
+          <div style={{ marginBottom: 10 }}>
+            <strong>Total Buses:</strong> {allBuses.length} |
+            <strong> Active:</strong> {activeBuses.length} |
+            <strong> OOS:</strong> {oosBuses.length}
+          </div>
 
-          <h3>Export All</h3>
+          {(() => {
+            const besComplete = Object.values(besResults).filter(v => v?.status).length;
+            const fleetComplete = Object.values(fleetResults).filter(v => v?.status === STATUS.COMPLETE).length;
+
+            const besPercent = Math.round((besComplete / activeBuses.length) * 100) || 0;
+            const fleetPercent = Math.round((fleetComplete / activeBuses.length) * 100) || 0;
+
+            const saved = JSON.parse(localStorage.getItem(`ccm-progress-${area}`) || "{}");
+            const ccmDone = Object.keys(saved.results || {}).length;
+            const ccmPercent = Math.round((ccmDone / activeBuses.length) * 100) || 0;
+            const ccmRemaining = activeBuses.length - ccmDone;
+
+            const bar = (percent, color) => (
+              <div style={{ background: "#ddd", borderRadius: 6, height: 12, margin: "4px 0 10px" }}>
+                <div style={{ width: `${percent}%`, background: color, height: "100%" }} />
+              </div>
+            );
+
+            return (
+              <>
+                <div>
+                  <strong>BES Compliance: {besPercent}%</strong>
+                  {bar(besPercent, "green")}
+                </div>
+
+                <div>
+                  <strong>Fleet Compliance: {fleetPercent}%</strong>
+                  {bar(fleetPercent, "blue")}
+                </div>
+
+                <div>
+                  <strong>CCM Compliance: {ccmPercent}%</strong>
+                  {bar(ccmPercent, "orange")}
+                  <div style={{ fontSize: 12 }}>
+                    {ccmRemaining === 0 ? "✅ Complete" : `⚠️ ${ccmRemaining} remaining`}
+                  </div>
+                </div>
+
+                <div>
+                  <strong>Monthly Compliance: --%</strong>
+                  {bar(0, "purple")}
+                </div>
+              </>
+            );
+          })()}
+
+          <h3 style={{ marginTop: 15 }}>Export All</h3>
           <button onClick={exportBES} style={{ marginRight: 10 }}>
             ⬇ BES CSV
           </button>
@@ -247,58 +296,10 @@ export default function App() {
         </div>
       )}
 
-      {/* BES GRID */}
-      {tab === "bes" && (
-        <div>
-          <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <h2>BES Grid</h2>
-            <button onClick={exportBES}>⬇ Export CSV</button>
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 10 }}>
-            {activeBuses.map(bus => {
-              const data = besResults[bus];
-              const violation = besViolations.includes(bus);
-
-              return (
-                <div
-                  key={bus}
-                  onClick={() => setSelectedBesBus(bus)}
-                  style={{
-                    padding: 10,
-                    background: getColor(data?.status),
-                    border: violation ? "3px solid red" : "1px solid #999",
-                    color: "white",
-                    textAlign: "center",
-                    cursor: "pointer",
-                    borderRadius: 6
-                  }}
-                >
-                  {bus}
-                </div>
-              );
-            })}
-          </div>
-
-          {selectedBesBus && (
-            <div style={{ marginTop: 16 }}>
-              <h3>Bus {selectedBesBus}</h3>
-
-              <button
-                onClick={() => {
-                  if (!loggedBy) return alert("Select Logged By");
-
-                  assignDriver(selectedBesBus);
-                  setBesResults(p => ({
-                    ...p,
-                    [selectedBesBus]: {
-                      status: STATUS.COMPLETE,
-                      loggedBy,
-                      timestamp: Date.now()
-                    }
-                  }));
-                }}
-              >
+      {/* KEEP YOUR ORIGINAL BES / FLEET / CCM SECTIONS BELOW UNCHANGED */}
+    </div>
+  );
+}
                 Tag ✅
               </button>
 
