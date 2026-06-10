@@ -262,19 +262,6 @@ export default function App() {
       {/* DASHBOARD */}
       {tab === "dashboard" && <DashboardView />}
 
-          <div>Active Buses: {activeBuses.length}</div>
-          <div>OOS Buses: {oosBuses.length}</div>
-
-          <h3>Export All</h3>
-          <button onClick={exportBES} style={{ marginRight: 10 }}>
-            ⬇ BES CSV
-          </button>
-          <button onClick={exportFleet}>
-            ⬇ Fleet CSV
-          </button>
-        </div>
-      )}
-
       {/* BES GRID */}
       {tab === "bes" && (
         <div>
