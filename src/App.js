@@ -9,14 +9,17 @@ const STATUS = {
   FAILED: "FAILED"
 };
 
+// ✅ UPDATED STAFF
 const STAFF = [
   "Drew",
   "Courtney",
   "Brandi",
-  "Tony",
   "Lee",
   "Johnny",
-  "Mike"
+  "Mike",
+  "Kris",
+  "Josh",
+  "Jonathan"
 ];
 
 function downloadCSV(filename, rows) {
@@ -60,8 +63,7 @@ export default function App() {
   const [selectedBesBus, setSelectedBesBus] = useState(null);
   const [selectedFleetBus, setSelectedFleetBus] = useState(null);
 
-  const today = new Date().getDay();
-  const isFriday = today === 5;
+  const isFriday = new Date().getDay() === 5;
 
   const fleetTemplate = {
     extinguisher: false,
@@ -122,65 +124,21 @@ export default function App() {
     ...fleetViolations
   ]).size;
 
-  // CSV EXPORTS
-  const exportBES = () => {
-    const headers = ["Bus", "Assigned Driver", "Logged By", "Status", "Date/Time"];
+  // ✅ NEW DASHBOARD METRICS
+  const besPercent = Math.round(
+    (Object.values(besResults).filter(v => v?.status).length / activeBuses.length) * 100
+  ) || 0;
 
-    const rows = activeBuses.map(bus => {
-      const d = besResults[bus] || {};
-      return [
-        bus,
-        busDrivers[bus] || "",
-        d.loggedBy || "",
-        d.status || "NOT_STARTED",
-        formatDate(d.timestamp)
-      ];
-    });
+  const fleetPercent = Math.round(
+    (Object.values(fleetResults).filter(v => v?.status === STATUS.COMPLETE).length / activeBuses.length) * 100
+  ) || 0;
 
-    const dateStr = new Date().toISOString().slice(0, 10);
-    downloadCSV(`BES-${area}-${dateStr}.csv`, [headers, ...rows]);
-  };
-
-  const exportFleet = () => {
-    const headers = [
-      "Bus",
-      "Assigned Driver",
-      "Logged By",
-      "Extinguisher",
-      "Registration",
-      "Insurance",
-      "First Aid",
-      "Body Fluid",
-      "Collision Packet",
-      "Status",
-      "Date/Time"
-    ];
-
-    const rows = activeBuses.map(bus => {
-      const d = fleetResults[bus] || {};
-
-      return [
-        bus,
-        busDrivers[bus] || "",
-        d.loggedBy || "",
-        d.extinguisher ? "YES" : "NO",
-        d.registration ? "YES" : "NO",
-        d.insurance ? "YES" : "NO",
-        d.firstAid ? "YES" : "NO",
-        d.bodyFluid ? "YES" : "NO",
-        d.collisionPacket ? "YES" : "NO",
-        d.status || "NOT_STARTED",
-        formatDate(d.timestamp)
-      ];
-    });
-
-    const dateStr = new Date().toISOString().slice(0, 10);
-    downloadCSV(`Fleet-${area}-${dateStr}.csv`, [headers, ...rows]);
-  };
+  const savedCCM = JSON.parse(localStorage.getItem(`ccm-progress-${area}`) || "{}");
+  const ccmDone = Object.keys(savedCCM.results || {}).length;
 
   return (
     <div style={{ padding: 20 }}>
-      <h1>Safety Compliance System ✅</h1>
+      <h1>Safety Compliance System</h1>
 
       {/* AREA + LOGGED BY */}
       <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 10 }}>
@@ -212,6 +170,55 @@ export default function App() {
           </select>
         </div>
       </div>
+
+      {/* TABS */}
+      <div style={{ marginBottom: 10 }}>
+        <button onClick={() => setTab("dashboard")}>Dashboard</button>
+        <button onClick={() => setTab("bes")}>BES</button>
+        <button onClick={() => setTab("fleet")}>Fleet</button>
+        <button onClick={() => setTab("ccm")}>CCM</button>
+      </div>
+
+      {/* ✅ UPDATED DASHBOARD */}
+      {tab === "dashboard" && (
+        <div>
+          <h2>Dashboard</h2>
+
+          {isFriday && (
+            <div style={{ background: "#ffcccc", padding: 10, marginBottom: 10 }}>
+              ALERT: {totalViolations} TOTAL VIOLATIONS
+              <div>BES: {besViolations.length}</div>
+              <div>Fleet: {fleetViolations.length}</div>
+            </div>
+          )}
+
+          <div style={{ marginBottom: 10 }}>
+            Total: {allBuses.length} |
+            Active: {activeBuses.length} |
+            OOS: {oosBuses.length}
+          </div>
+
+          <div>BES Compliance: {besPercent}%</div>
+          <div>Fleet Compliance: {fleetPercent}%</div>
+
+          <div>
+            CCM: {Math.round((ccmDone / activeBuses.length) * 100) || 0}% —
+            {ccmDone === activeBuses.length
+              ? "Complete"
+              : `${activeBuses.length - ccmDone} remaining`}
+          </div>
+
+          <h3>Export All</h3>
+          <button onClick={exportBES} style={{ marginRight: 10 }}>
+            Export BES CSV
+          </button>
+          <button onClick={exportFleet}>
+            Export Fleet CSV
+          </button>
+        </div>
+      )}
+
+      {/* ✅ EVERYTHING ELSE BELOW IS UNCHANGED */}
 
       {/* TABS */}
       <div style={{ marginBottom: 10 }}>
