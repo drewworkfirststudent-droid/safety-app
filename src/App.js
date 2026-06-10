@@ -268,19 +268,51 @@ return (
 <div>
 <h2>Dashboard</h2>
 
-          {isFriday && (
-            <div style={{ color: "red", fontWeight: "bold" }}>
-              🚨 FINAL COMPLIANCE REVIEW
-            </div>
-          )}
+{isFriday && (
+  <div style={{ background: "#ffcccc", padding: 10, marginBottom: 10 }}>
+    ALERT: {totalViolations} TOTAL VIOLATIONS
+    <div>BES: {besViolations.length}</div>
+    <div>Fleet: {fleetViolations.length}</div>
+  </div>
+)}
 
+<div style={{ marginBottom: 10 }}>
+  <strong>Total Buses:</strong> {allBuses.length} |
+  <strong> Active:</strong> {activeBuses.length} |
+  <strong> OOS:</strong> {oosBuses.length}
+</div>
 
-          <div>BES: {besPercent}%</div>
-          <div>Fleet: {fleetPercent}%</div>
-          <div>Monthly: {monthlyPercent}%</div>
-          <div>CCM: {ccmPercent}%</div>
+<div>BES Compliance: {besPercent}%</div>
+<div>Fleet Compliance: {fleetPercent}%</div>
+<div>Monthly Compliance: {monthlyPercent}%</div>
 
-          <h3>🚨 Violations</h3>
+<div>
+  CCM Compliance: {ccmPercent}% — {Object.keys(savedCCM.results || {}).length === activeBuses.length
+    ? "Complete"
+    : `${activeBuses.length - Object.keys(savedCCM.results || {}).length} remaining`}
+</div>
+
+<h3>Violations</h3>
+{violations.length === 0 ? (
+  <div>None</div>
+) : (
+  violations.map(b => (
+    <div key={b} style={{ color: "red" }}>
+      Bus {b} — Driver: {busDrivers[b] || "UNKNOWN"}
+    </div>
+  ))
+)}
+
+<h3 style={{ marginTop: 10 }}>Export</h3>
+<button onClick={exportBES} style={{ marginRight: 10 }}>
+  Export BES CSV
+</button>
+<button onClick={exportFleet}>
+  Export Fleet CSV
+</button>
+
+</div>
+)}
           {violations.length === 0 ? (
             <div>✅ None</div>
           ) : (
