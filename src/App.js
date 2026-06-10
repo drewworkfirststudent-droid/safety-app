@@ -179,6 +179,42 @@ export default function App() {
     const dateStr = new Date().toISOString().slice(0, 10);
     downloadCSV(`Fleet-${area}-${dateStr}.csv`, [headers, ...rows]);
   };
+  const DashboardView = () => (
+  <div>
+    <h2>Dashboard</h2>
+
+    {isFriday && (
+      <div style={{ background: "#ffcccc", padding: 10, marginBottom: 10 }}>
+        ALERT: {totalViolations} TOTAL VIOLATIONS
+        <div>BES: {besViolations.length}</div>
+        <div>Fleet: {fleetViolations.length}</div>
+      </div>
+    )}
+
+    <div style={{ marginBottom: 10 }}>
+      Total: {allBuses.length} | Active: {activeBuses.length} | OOS: {oosBuses.length}
+    </div>
+
+    <div>BES Compliance: {besPercent}%</div>
+    <div>Fleet Compliance: {fleetPercent}%</div>
+
+    <div>
+      CCM: {ccmPercent}% —{" "}
+      {ccmDone === activeBuses.length
+        ? "Complete"
+        : `${activeBuses.length - ccmDone} remaining`}
+    </div>
+
+    <div style={{ marginTop: 10 }}>
+      <button onClick={exportBES} style={{ marginRight: 10 }}>
+        Export BES CSV
+      </button>
+      <button onClick={exportFleet}>
+        Export Fleet CSV
+      </button>
+    </div>
+  </div>
+);
 
   return (
     <div style={{ padding: 20 }}>
@@ -224,17 +260,7 @@ export default function App() {
       </div>
 
       {/* DASHBOARD */}
-      {tab === "dashboard" && (
-        <div>
-          <h2>Dashboard</h2>
-
-          {isFriday && (
-            <div style={{ background: "#ffcccc", padding: 10, marginBottom: 10 }}>
-              🚨 {totalViolations} TOTAL VIOLATIONS
-              <div>BES: {besViolations.length}</div>
-              <div>Fleet: {fleetViolations.length}</div>
-            </div>
-          )}
+      {tab === "dashboard" && <DashboardView />}
 
           <div>Active Buses: {activeBuses.length}</div>
           <div>OOS Buses: {oosBuses.length}</div>
