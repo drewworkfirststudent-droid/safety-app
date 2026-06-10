@@ -182,7 +182,7 @@ export default function App() {
 
   return (
     <div style={{ padding: 20 }}>
-      <h1>Safety Compliance System ✅</h1>
+      <h1>Safety Compliance System</h1>
 
       {/* AREA + LOGGED BY */}
       <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 10 }}>
@@ -230,7 +230,7 @@ export default function App() {
 
           {isFriday && (
             <div style={{ background: "#ffcccc", padding: 10, marginBottom: 10 }}>
-              🚨 {totalViolations} TOTAL VIOLATIONS
+              ALERT: {totalViolations} TOTAL VIOLATIONS
               <div>BES: {besViolations.length}</div>
               <div>Fleet: {fleetViolations.length}</div>
             </div>
@@ -290,10 +290,10 @@ export default function App() {
 
           <h3 style={{ marginTop: 15 }}>Export All</h3>
           <button onClick={exportBES} style={{ marginRight: 10 }}>
-            ⬇ BES CSV
+            Download BES CSV
           </button>
           <button onClick={exportFleet}>
-            ⬇ Fleet CSV
+            Download Fleet CSV
           </button>
         </div>
       )}
