@@ -215,14 +215,6 @@ export default function App() {
         </div>
       </div>
 
-      {/* TABS */}
-      <div style={{ marginBottom: 10 }}>
-        <button onClick={() => setTab("dashboard")}>Dashboard</button>
-        <button onClick={() => setTab("bes")}>BES</button>
-        <button onClick={() => setTab("fleet")}>Fleet</button>
-        <button onClick={() => setTab("ccm")}>CCM</button>
-      </div>
-
       {/* DASHBOARD */}
       {tab === "dashboard" && (
   <div>
@@ -247,7 +239,7 @@ export default function App() {
       CCM: {ccmPercent}% —{" "}
       {ccmDone === activeBuses.length
         ? "Complete"
-        : `${activeBuses.length - ccmDone} remaining`}
+        : `${activeBuses.length - ccmDone} remaining`}<div>
     </div>
 
     <h3>Export</h3>
