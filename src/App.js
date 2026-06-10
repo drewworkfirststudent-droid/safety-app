@@ -276,7 +276,7 @@ export default function App() {
                   <strong>CCM Compliance: {ccmPercent}%</strong>
                   {bar(ccmPercent, "orange")}
                   <div style={{ fontSize: 12 }}>
-                    {ccmRemaining === 0 ? "✅ Complete" : `⚠️ ${ccmRemaining} remaining`}
+                  {ccmRemaining === 0 ? "Complete" : `${ccmRemaining} remaining`} 
                   </div>
                 </div>
 
