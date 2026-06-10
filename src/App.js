@@ -215,42 +215,40 @@ export default function App() {
         </div>
       </div>
 
+      {/* TABS */}
+      <div style={{ marginBottom: 10 }}>
+        <button onClick={() => setTab("dashboard")}>Dashboard</button>
+        <button onClick={() => setTab("bes")}>BES</button>
+        <button onClick={() => setTab("fleet")}>Fleet</button>
+        <button onClick={() => setTab("ccm")}>CCM</button>
+      </div>
+
       {/* DASHBOARD */}
       {tab === "dashboard" && (
-  <div>
-    <h2>Dashboard</h2>
+        <div>
+          <h2>Dashboard</h2>
 
-    {isFriday && (
-      <div style={{ background: "#ffcccc", padding: 10, marginBottom: 10 }}>
-        ALERT: {totalViolations} TOTAL VIOLATIONS
-        <div>BES: {besViolations.length}</div>
-        <div>Fleet: {fleetViolations.length}</div>
-      </div>
-    )}
+          {isFriday && (
+            <div style={{ background: "#ffcccc", padding: 10, marginBottom: 10 }}>
+              🚨 {totalViolations} TOTAL VIOLATIONS
+              <div>BES: {besViolations.length}</div>
+              <div>Fleet: {fleetViolations.length}</div>
+            </div>
+          )}
 
-    <div style={{ marginBottom: 10 }}>
-      Total: {allBuses.length} | Active: {activeBuses.length} | OOS: {oosBuses.length}
-    </div>
+          <div>Active Buses: {activeBuses.length}</div>
+          <div>OOS Buses: {oosBuses.length}</div>
 
-    <div>BES Compliance: {besPercent}%</div>
-    <div>Fleet Compliance: {fleetPercent}%</div>
+          <h3>Export All</h3>
+          <button onClick={exportBES} style={{ marginRight: 10 }}>
+            ⬇ BES CSV
+          </button>
+          <button onClick={exportFleet}>
+            ⬇ Fleet CSV
+          </button>
+        </div>
+      )}
 
-    <div>
-      CCM: {ccmPercent}% —{" "}
-      {ccmDone === activeBuses.length
-        ? "Complete"
-        : `${activeBuses.length - ccmDone} remaining`}<div>
-    </div>
-
-    <h3>Export</h3>
-    <button onClick={exportBES} style={{ marginRight: 10 }}>
-      Export BES CSV
-    </button>
-    <button onClick={exportFleet}>
-      Export Fleet CSV
-    </button>
-  </div>
-)}
       {/* BES GRID */}
       {tab === "bes" && (
         <div>
@@ -263,9 +261,6 @@ export default function App() {
             {activeBuses.map(bus => {
               const data = besResults[bus];
               const violation = besViolations.includes(bus);
-              const savedCCM = JSON.parse(localStorage.getItem(`ccm-progress-${area}`) || "{}");
-              const ccmDone = Object.keys(savedCCM.results || {}).length;
-              const ccmPercent = Math.round((ccmDone / activeBuses.length)
 
               return (
                 <div
