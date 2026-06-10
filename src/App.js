@@ -238,7 +238,9 @@ export default function App() {
 );
 
   return (
-    <div style={{ padding: 20 }}>
+  <>
+  <div style={{ padding: 20 }}>
+
       <h1>Safety Compliance System ✅</h1>
 
       {/* AREA + LOGGED BY */}
