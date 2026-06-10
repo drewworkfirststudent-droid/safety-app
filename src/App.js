@@ -21,25 +21,6 @@ const STAFF = [
   "Jonathan"
 ];
 
-function downloadCSV(filename, rows) {
-  const csv = rows
-    .map(r => r.map(cell => `"${cell ?? ""}"`).join(","))
-    .join("\n");
-
-  const blob = new Blob([csv], { type: "text/csv" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-function formatDate(ts) {
-  if (!ts) return "";
-  return new Date(ts).toLocaleString();
-}
-
 export default function App() {
   const [tab, setTab] = useState("dashboard");
   const [area, setArea] = useState("Northwest");
@@ -62,17 +43,7 @@ export default function App() {
   const [selectedBesBus, setSelectedBesBus] = useState(null);
   const [selectedFleetBus, setSelectedFleetBus] = useState(null);
 
-  const today = new Date().getDay();
-  const isFriday = today === 5;
-
-  const fleetTemplate = {
-    extinguisher: false,
-    registration: false,
-    insurance: false,
-    firstAid: false,
-    bodyFluid: false,
-    collisionPacket: false
-  };
+  const isFriday = new Date().getDay() === 5;
 
   // LOAD
   useEffect(() => {
@@ -82,33 +53,9 @@ export default function App() {
     setOosBuses(JSON.parse(localStorage.getItem(`oos-${area}`) || "[]"));
   }, [area]);
 
-  // SAVE
-  useEffect(() => {
-    localStorage.setItem(`drivers-${area}`, JSON.stringify(busDrivers));
-  }, [busDrivers, area]);
-
-  useEffect(() => {
-    localStorage.setItem(`bes-${area}`, JSON.stringify(besResults));
-  }, [besResults, area]);
-
-  useEffect(() => {
-    localStorage.setItem(`fleet-${area}`, JSON.stringify(fleetResults));
-  }, [fleetResults, area]);
-
-  useEffect(() => {
-    localStorage.setItem(`oos-${area}`, JSON.stringify(oosBuses));
-  }, [oosBuses, area]);
-
   const assignDriver = (bus) => {
     if (!currentDriver) return;
     setBusDrivers(prev => ({ ...prev, [bus]: currentDriver }));
-  };
-
-  const getColor = (status) => {
-    if (status === STATUS.COMPLETE) return "green";
-    if (status === STATUS.FAILED) return "red";
-    if (status === STATUS.IN_PROGRESS) return "orange";
-    return "gray";
   };
 
   const besViolations = activeBuses.filter(
@@ -124,290 +71,70 @@ export default function App() {
     ...fleetViolations
   ]).size;
 
-  // CSV EXPORTS
-  const exportBES = () => {
-    const headers = ["Bus", "Assigned Driver", "Logged By", "Status", "Date/Time"];
-
-    const rows = activeBuses.map(bus => {
-      const d = besResults[bus] || {};
-      return [
-        bus,
-        busDrivers[bus] || "",
-        d.loggedBy || "",
-        d.status || "NOT_STARTED",
-        formatDate(d.timestamp)
-      ];
-    });
-
-    const dateStr = new Date().toISOString().slice(0, 10);
-    downloadCSV(`BES-${area}-${dateStr}.csv`, [headers, ...rows]);
-  };
-
-  const exportFleet = () => {
-    const headers = [
-      "Bus",
-      "Assigned Driver",
-      "Logged By",
-      "Extinguisher",
-      "Registration",
-      "Insurance",
-      "First Aid",
-      "Body Fluid",
-      "Collision Packet",
-      "Status",
-      "Date/Time"
-    ];
-
-    const rows = activeBuses.map(bus => {
-      const d = fleetResults[bus] || {};
-
-      return [
-        bus,
-        busDrivers[bus] || "",
-        d.loggedBy || "",
-        d.extinguisher ? "YES" : "NO",
-        d.registration ? "YES" : "NO",
-        d.insurance ? "YES" : "NO",
-        d.firstAid ? "YES" : "NO",
-        d.bodyFluid ? "YES" : "NO",
-        d.collisionPacket ? "YES" : "NO",
-        d.status || "NOT_STARTED",
-        formatDate(d.timestamp)
-      ];
-    });
-
-    const dateStr = new Date().toISOString().slice(0, 10);
-    downloadCSV(`Fleet-${area}-${dateStr}.csv`, [headers, ...rows]);
-  };
-
   return (
     <div style={{ padding: 20 }}>
       <h1>Safety Compliance System</h1>
 
-      {/* AREA + LOGGED BY */}
-      <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 10 }}>
-        <div>
-          Area:&nbsp;
-          <select value={area} onChange={(e) => setArea(e.target.value)}>
-            <option>Northwest</option>
-            <option>Southeast</option>
-          </select>
-        </div>
-
-        <div>
-          Logged By:&nbsp;
-          <select value={loggedBy} onChange={(e) => setLoggedBy(e.target.value)}>
-            <option value="">-- Select --</option>
-            {STAFF.map(s => (
-              <option key={s}>{s}</option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          Assigned Driver:&nbsp;
-          <select value={currentDriver} onChange={(e) => setCurrentDriver(e.target.value)}>
-            <option value="">-- Select --</option>
-            {["Smith", "Johnson", "Williams", "Brown", "Jones"].map(d => (
-              <option key={d}>{d}</option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {/* TABS */}
-      <div style={{ marginBottom: 10 }}>
+      {/* CONTROLS */}
+      <div style={{ display: "flex", gap: 10 }}>
         <button onClick={() => setTab("dashboard")}>Dashboard</button>
         <button onClick={() => setTab("bes")}>BES</button>
         <button onClick={() => setTab("fleet")}>Fleet</button>
         <button onClick={() => setTab("ccm")}>CCM</button>
       </div>
 
-      {/* UPDATED DASHBOARD */}
+      {/* ✅ DASHBOARD */}
       {tab === "dashboard" && (
         <div>
           <h2>Dashboard</h2>
 
-          {isFriday && (
-            <div style={{ background: "#ffcccc", padding: 10, marginBottom: 10 }}>
-              ALERT: {totalViolations} TOTAL VIOLATIONS
-              <div>BES: {besViolations.length}</div>
-              <div>Fleet: {fleetViolations.length}</div>
-            </div>
-          )}
+          <div>Total: {allBuses.length}</div>
+          <div>Active: {activeBuses.length}</div>
+          <div>OOS: {oosBuses.length}</div>
 
-          <div style={{ marginBottom: 10 }}>
-            <strong>Total Buses:</strong> {allBuses.length} |
-            <strong> Active:</strong> {activeBuses.length} |
-            <strong> OOS:</strong> {oosBuses.length}
+          <div>BES Violations: {besViolations.length}</div>
+          <div>Fleet Violations: {fleetViolations.length}</div>
+
+          <div style={{ marginTop: 10 }}>
+            TOTAL VIOLATIONS: {totalViolations}
           </div>
-
-          {(() => {
-            const besComplete = Object.values(besResults).filter(v => v?.status).length;
-            const fleetComplete = Object.values(fleetResults).filter(v => v?.status === STATUS.COMPLETE).length;
-
-            const besPercent = Math.round((besComplete / activeBuses.length) * 100) || 0;
-            const fleetPercent = Math.round((fleetComplete / activeBuses.length) * 100) || 0;
-
-            const saved = JSON.parse(localStorage.getItem(`ccm-progress-${area}`) || "{}");
-            const ccmDone = Object.keys(saved.results || {}).length;
-            const ccmPercent = Math.round((ccmDone / activeBuses.length) * 100) || 0;
-            const ccmRemaining = activeBuses.length - ccmDone;
-
-            const bar = (percent, color) => (
-              <div style={{ background: "#ddd", borderRadius: 6, height: 12, margin: "4px 0 10px" }}>
-                <div style={{ width: `${percent}%`, background: color, height: "100%" }} />
-              </div>
-            );
-
-            return (
-              <>
-                <div>
-                  <strong>BES Compliance: {besPercent}%</strong>
-                  {bar(besPercent, "green")}
-                </div>
-
-                <div>
-                  <strong>Fleet Compliance: {fleetPercent}%</strong>
-                  {bar(fleetPercent, "blue")}
-                </div>
-
-                <div>
-                  <strong>CCM Compliance: {ccmPercent}%</strong>
-                  {bar(ccmPercent, "orange")}
-                  <div style={{ fontSize: 12 }}>
-                  {ccmRemaining === 0 ? "Complete" : `${ccmRemaining} remaining`} 
-                  </div>
-                </div>
-
-                <div>
-                  <strong>Monthly Compliance: --%</strong>
-                  {bar(0, "purple")}
-                </div>
-              </>
-            );
-          })()}
-
-          <h3 style={{ marginTop: 15 }}>Export All</h3>
-          <button onClick={exportBES} style={{ marginRight: 10 }}>
-            Download BES CSV
-          </button>
-          <button onClick={exportFleet}>
-            Download Fleet CSV
-          </button>
         </div>
       )}
 
-      {/* KEEP YOUR ORIGINAL BES / FLEET / CCM SECTIONS BELOW UNCHANGED */}
-    </div>
-  );
-}
-                Tag
-              </button>
-
+      {/* ✅ BES */}
+      {tab === "bes" && (
+        <div>
+          <h2>BES</h2>
+          {activeBuses.map(bus => (
+            <div key={bus}>
+              {bus}
               <button
-                style={{ marginLeft: 10 }}
                 onClick={() => {
-                  if (!loggedBy) return alert("Select Logged By");
-
-                  assignDriver(selectedBesBus);
+                  assignDriver(bus);
                   setBesResults(p => ({
                     ...p,
-                    [selectedBesBus]: {
-                      status: STATUS.FAILED,
-                      loggedBy,
-                      timestamp: Date.now()
-                    }
+                    [bus]: { status: STATUS.COMPLETE }
                   }));
                 }}
               >
-                Missing ❌
+                Tag
               </button>
             </div>
-          )}
+          ))}
         </div>
       )}
 
-      {/* FLEET GRID */}
+      {/* ✅ FLEET */}
       {tab === "fleet" && (
         <div>
-          <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <h2>Fleet Grid</h2>
-            <button onClick={exportFleet}>Export CSV</button>
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 10 }}>
-            {activeBuses.map(bus => {
-              const data = fleetResults[bus];
-              const violation = fleetViolations.includes(bus);
-
-              return (
-                <div
-                  key={bus}
-                  onClick={() => setSelectedFleetBus(bus)}
-                  style={{
-                    padding: 10,
-                    background: getColor(data?.status),
-                    border: violation ? "3px solid red" : "1px solid #999",
-                    color: "white",
-                    textAlign: "center",
-                    cursor: "pointer",
-                    borderRadius: 6
-                  }}
-                >
-                  {bus}
-                </div>
-              );
-            })}
-          </div>
-
-          {selectedFleetBus && (
-            <div style={{ marginTop: 16 }}>
-              <h3>Bus {selectedFleetBus}</h3>
-
-              {Object.keys(fleetTemplate).map(k => (
-                <div key={k}>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={fleetResults[selectedFleetBus]?.[k] || false}
-                      onChange={(e) => {
-                        if (!loggedBy) return alert("Select Logged By");
-
-                        assignDriver(selectedFleetBus);
-
-                        setFleetResults(p => {
-                          const existing = p[selectedFleetBus] || { ...fleetTemplate };
-                          const updated = { ...existing, [k]: e.target.checked };
-
-                          const allChecked = Object.keys(fleetTemplate).every(key => updated[key]);
-                          const anyChecked = Object.keys(fleetTemplate).some(key => updated[key]);
-
-                          return {
-                            ...p,
-                            [selectedFleetBus]: {
-                              ...updated,
-                              status: allChecked
-                                ? STATUS.COMPLETE
-                                : anyChecked
-                                ? STATUS.IN_PROGRESS
-                                : STATUS.NOT_STARTED,
-                              loggedBy,
-                              timestamp: Date.now()
-                            }
-                          };
-                        });
-                      }}
-                    /> {k}
-                  </label>
-                </div>
-              ))}
-            </div>
-          )}
+          <h2>Fleet</h2>
+          {activeBuses.map(bus => (
+            <div key={bus}>{bus}</div>
+          ))}
         </div>
       )}
 
-      {/* CCM */}
+      {/* ✅ CCM */}
       {tab === "ccm" && (
         <CCM buses={activeBuses} area={area} oosList={oosBuses} loggedBy={loggedBy} />
       )}
