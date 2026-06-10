@@ -13,10 +13,12 @@ const STAFF = [
   "Drew",
   "Courtney",
   "Brandi",
-  "Tony",
+  "Josh",
   "Lee",
   "Johnny",
-  "Mike"
+  "Mike",
+  "Kris",
+  "Jonathan"
 ];
 
 function downloadCSV(filename, rows) {
